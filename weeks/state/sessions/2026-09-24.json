@@ -24,7 +24,7 @@
     "0001 greenfield stack + monorepo tooling",
     "0002 repo=arcgod-design/gitswipe, no license yet",
     "0003 safe defaults: unmatched->APPROVAL_REQUIRED, approval action-hash binding, session-state extensions",
-    "0004 dispatched tasks follow the ssoc git work pattern (REPO-WORK-CONVENTIONS.md)"
+    "0004 dispatched tasks follow the ssoc git work pattern (REPO-WORK-CONVENTIONS.md)", "0005 product name = GitSwipe public / Jarvis internal codename; workspace root user-provided"
   ],
   "next_step": "Start WEEK-01 (weeks/WEEK-01.md): provider completeness + SecretStore (Windows Credential Manager) + routing API + daemon health command",
   "user_blockers": ["U1 product name", "U2 license", "U3 GitHub OAuth creds (WEEK-02)", "U5 BYOK test keys (WEEK-01 live smoke)"]

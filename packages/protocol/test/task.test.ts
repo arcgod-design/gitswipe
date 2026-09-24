@@ -46,7 +46,7 @@ describe("task contract", () => {
 
   it("renders readable markdown with the untrusted-content rule", () => {
     const md = toMarkdown(TaskContractSchema.parse(contract));
-    expect(md).toContain("JARVIS TASK CONTRACT");
+    expect(md).toContain("GITSWIPE TASK CONTRACT");
     expect(md).toContain("feat/issue-123-reconnect-backoff");
     expect(md).toContain("untrusted data");
   });

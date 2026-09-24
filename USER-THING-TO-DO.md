@@ -4,10 +4,10 @@
 
 | # | Item | Needed by | Status |
 |---|------|-----------|--------|
-| 1 | **Confirm the product name**: contract says "Jarvis", the repo is named "gitsweep". Which name ships? | WEEK-08 branding | OPEN |
+| 1 | ~~Confirm the product name~~ — **RESOLVED 2026-09-24: GitSwipe** (public) / Jarvis internal codename (ADR 0005) | — | ✅ DONE |
 | 2 | **Pick a license** (MIT vs Apache-2.0). No public release before this. | WEEK-11/12 | OPEN |
 | 3 | **GitHub App / OAuth app credentials** for the user-owned GitHub connection (WEEK-02 start decides which type). Create at github.com/settings/developers when ready. | WEEK-02 live smoke | OPEN |
 | 4 | **Puter app registration** (app UID + origin) — optional path only. | WEEK-08 | OPEN |
 | 5 | **BYOK test keys** (OpenAI or any provider) placed in local `.env` — never pasted into a chat. | WEEK-01 live smoke | OPEN |
 | 6 | Confirm Android SDK path in Android Studio is configured (for WEEK-09 Capacitor builds). | WEEK-09 | OPEN |
-| 7 | When the first real OpenCode-dispatched task runs (WEEK-06): confirm the default workspace root for contribution worktrees (today your ssoc root is `C:\Users\arc\OneDrive\Desktop\ssoc\ssoc\` — should Jarvis default to that, or a new Jarvis-owned root?) | WEEK-06 | OPEN |
+| 7 | **Designate the contribution workspace root folder** (a dedicated folder like your ssoc root — GitSwipe registers it at workstation setup and manages worktrees under it; it will not write into ssoc itself). | WEEK-06 setup | OPEN |

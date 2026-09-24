@@ -1,6 +1,6 @@
-# Jarvis
+# GitSwipe
 
-> Personal engineering agent network: **discover** GitHub work worth doing, **decide** via a swipe feed with evidence, **execute** on your own PC through agents like OpenCode, **supervise** everything from your phone or browser. Provider-agnostic AI (BYOK first-class, Puter optional, local models first-class). Self-hostable. Local-first.
+> Personal engineering agent network: **discover** GitHub work worth doing, **decide** via a swipe feed with evidence, **execute** on your own PC through agents like OpenCode, **supervise** everything from your phone or browser. Provider-agnostic AI (BYOK first-class, Puter optional, local models first-class). Self-hostable. Local-first. (Internal codename: Jarvis — you'll see it in package names and the wire protocol.)
 
 **Status: WEEK-00 foundation.** This is an active build, not a finished product. The honest capability ledger lives in [`PROJECT_STATUS.md`](PROJECT_STATUS.md) — read it before assuming anything works. The full product spec is the binding contract at [`docs/source/JARVIS_PRODUCTION_BUILD_PROMPT.md`](docs/source/JARVIS_PRODUCTION_BUILD_PROMPT.md).
 

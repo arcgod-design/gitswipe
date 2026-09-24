@@ -29,6 +29,8 @@ Not "an AI chatbot for GitHub". The core loop (contract §214): DISCOVER → UND
 | 17 | Workstation continues autonomously when phone offline; mobile reconnect = event replay from cursor; durable local-first state on the workstation | Contract §21/§113 | 2026-09-24 |
 | 18 | **Every dispatched task follows the ssoc git work pattern** (user's 80+ PR workflow): one worktree per issue (`<Repo>/issue-N/`), `feat/issue-N-slug` branches, fork→upstream PRs, `(closes #N)` commits, pre-push lint/test gates, PR lifecycle handling incl. CodeRabbit resolution + maintainer-blocked tracking — see `docs/REPO-WORK-CONVENTIONS.md` + ADR 0004 | User directive | 2026-09-24 |
 | 19 | Task contracts carry an embedded `git_workflow` block (branch naming, remotes, gates, lifecycle rules) so agents receive the pattern in-band; workstation enforces deny-rules regardless of agent behavior | ADR 0004 | 2026-09-24 |
+| 20 | **Public product name = GitSwipe.** "Jarvis" remains internal codename (`@jarvis/*` packages, `jarvis-workstation` protocol id, protocol types) — renaming them is churn + wire breakage; new ADR required to ever change | ADR 0005, user decision | 2026-09-24 |
+| 21 | Contribution workspace root = **user-provided** (designated at workstation setup, WEEK-06 config); GitSwipe never defaults into an existing personal folder like ssoc | ADR 0005, user decision | 2026-09-24 |
 
 ## Verified facts (toolchain, this machine)
 
@@ -48,7 +50,8 @@ Not "an AI chatbot for GitHub". The core loop (contract §214): DISCOVER → UND
 
 ## Open questions (blocking nothing, answer when ready)
 
-1. **Product name**: contract says "Jarvis"; repo is named **gitswipe**. Which is the public product name? (affects branding WEEK-08+)
+1. ~~Product name~~ — **RESOLVED 2026-09-24: GitSwipe** (public) / Jarvis (internal codename). ADR 0005.
 2. License: MIT vs Apache-2.0 — must be locked before any public release.
 3. GitHub App vs OAuth app vs PAT for v1 — contract prefers App/scoped OAuth (§8); decide at WEEK-02 start.
 4. Puter app registration credentials — needed only for WEEK-08 optional path.
+5. Workspace root folder — user will designate one (like ssoc) at WEEK-06 workstation setup.

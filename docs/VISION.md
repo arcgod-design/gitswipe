@@ -1,10 +1,10 @@
-# docs/VISION.md — Jarvis
+# docs/VISION.md — GitSwipe (internal codename: Jarvis)
 
 > The product north star. Change only when the user changes the product definition.
 
 ## One-liner
 
-**Jarvis is your personal engineering agent network: it finds GitHub work worth doing (and references worth knowing), turns what you accept into rigorous task contracts, executes them on your own PC through agents like OpenCode, and lets you supervise, intervene, approve and ship from your phone or browser — with your own AI keys, your own GitHub, your own machine.**
+**GitSwipe is your personal engineering agent network: it finds GitHub work worth doing (and references worth knowing), turns what you accept into rigorous task contracts, executes them on your own PC through agents like OpenCode, and lets you supervise, intervene, approve and ship from your phone or browser — with your own AI keys, your own GitHub, your own machine.**
 
 ## What we're building (locked 2026-09-24)
 

@@ -34,8 +34,9 @@
 
 | # | Item | Owner | Blocks |
 |---|------|-------|--------|
-| U1 | Confirm product name: "Jarvis" vs "GitSwipe" | USER | branding WEEK-08+ |
+| U1 | ~~Confirm product name~~ — RESOLVED: **GitSwipe** (ADR 0005) | — | — |
 | U2 | License choice (MIT vs Apache-2.0) | USER | any public release (WEEK-11/12) |
 | U3 | GitHub App/OAuth creds | USER | WEEK-02 live smoke (fixtures don't need it) |
 | U4 | Puter app registration | USER | WEEK-08 optional path only |
 | U5 | BYOK test keys into local `.env` (never paste into chats) | USER | WEEK-01 live smoke (mocks don't need it) |
+| U7 | Designate workspace root folder for dispatched-task worktrees | USER | WEEK-06 setup |

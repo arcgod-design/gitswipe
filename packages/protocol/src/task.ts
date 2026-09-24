@@ -76,7 +76,7 @@ export type TaskContract = z.infer<typeof TaskContractSchema>;
 export function toMarkdown(contract: TaskContract): string {
   const w = contract.git_workflow;
   return [
-    "JARVIS TASK CONTRACT",
+    "GITSWIPE TASK CONTRACT",
     "====================",
     "",
     `Task ID: ${contract.task_id}`,
