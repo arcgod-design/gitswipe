@@ -168,9 +168,35 @@ async function githubCommand(args: string[]): Promise<void> {
 function serve(): never {
   process.stderr.write(
     "jarvisd: long-running workstation service ships in WEEK-05 (weeks/WEEK-05.md). " +
-      "Nothing is listening; refusing to pretend. Use 'check', 'health', or 'secret'.\n",
+      "Nothing is listening; refusing to pretend. Use 'check', 'health', 'github', 'secret', or 'demo'.\n",
   );
   process.exit(2);
+}
+
+async function demoCommand(args: string[]): Promise<void> {
+  const portFlag = args.find((a) => a.startsWith("--port="));
+  const port = portFlag ? Number.parseInt(portFlag.slice("--port=".length), 10) : 7420;
+  const { startDemoServer } = await import("./demo-server.js");
+  const handle = await startDemoServer({ port, dataDir: join(dataDir(), "demo") });
+  process.stdout.write(
+    [
+      "",
+      "  GITSWIPE DEMO — fixture data, not connected to GitHub",
+      "",
+      `  url:   http://127.0.0.1:${handle.port}`,
+      `  token: ${handle.token}`,
+      "",
+      "  Every response carries x-demo-mode: true.",
+      "  Demo data dir is isolated; no real credentials are read.",
+      "  Stop with Ctrl+C.",
+      "",
+    ].join("\n"),
+  );
+  const shutdown = () => {
+    void handle.close().finally(() => process.exit(0));
+  };
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 }
 
 const arg = (process.argv[2] ?? "").replace(/^--/, "");
@@ -190,6 +216,9 @@ switch (arg) {
   case "secret":
     await secretCommand(process.argv.slice(3));
     break;
+  case "demo":
+    await demoCommand(process.argv.slice(3));
+    break;
   case "serve":
     serve();
     break;
@@ -203,6 +232,7 @@ switch (arg) {
         "  jarvisd health         provider health (JARVIS_PROVIDERS=comma,list)",
         "  jarvisd github check   verify GitHub token + print login + rate budget",
         "  jarvisd secret <cmd>   BYOK key store (OS credential store)",
+        "  jarvisd demo [--port=N] start the pitch demo (fixture data, loopback only)",
         "  jarvisd serve          start the workstation service (WEEK-05)",
         "",
       ].join("\n"),

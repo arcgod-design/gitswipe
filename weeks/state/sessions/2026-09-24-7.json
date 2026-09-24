@@ -1,0 +1,19 @@
+{
+  "date": "2026-09-24 (session 7)",
+  "in_flight_week": "MVP track M1 (branch: mvp)",
+  "week_status": "M1 done (demo server: loopback + token + feed/swipe/contract API over real engines, 8/8 tests + live verification). M2 next: journal + SSE + mock agent",
+  "verified": [
+    "npm run typecheck -> 5/5 clean (on mvp)",
+    "npm test -> 124/124 passed (daemon suite 8/8)",
+    "live: jarvisd demo --port=7421 -> healthz ok, feed ranked+explainable, 401 without token"
+  ],
+  "files_touched": [
+    "apps/daemon/src/{demo-data,demo-server,index}.ts",
+    "apps/daemon/test/demo-server.test.ts",
+    "apps/daemon/package.json (deps: discovery, zod)",
+    "doc-of-journey/daily/2026-09-24-7.md"
+  ],
+  "decisions_locked": [],
+  "next_step": "M2 on mvp: event journal (append-only JSONL, monotonic sequence, replay-from-cursor), SSE /api/events, deterministic MockAgent script (inspect -> changes -> tests -> approval -> complete), session endpoints",
+  "user_blockers": ["U5 PAT (live GitHub smoke)", "U5 BYOK key (live AI smoke)", "U2 license (pre-release)"]
+}
