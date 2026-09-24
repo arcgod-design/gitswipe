@@ -214,7 +214,7 @@ async function pairCommand(): Promise<void> {
   const pairing = new PairingService(config.dataDir, config.pairingTtlMs);
   const { code, expiresAt } = pairing.issueCode();
   const minutes = Math.round((expiresAt - Date.now()) / 60_000);
-  process.stdout.write(`\n  PAIRING CODE\n  ${code}\n  expires in ${minutes} min, single use\n\n`);
+  process.stdout.write(`\n  PAIRING CODE\n  ${code}\n  expires in ${minutes} min, single use\n  data dir: ${config.dataDir}\n\n`);
 }
 
 async function devicesCommand(args: string[]): Promise<void> {
@@ -226,12 +226,13 @@ async function devicesCommand(args: string[]): Promise<void> {
   if (sub === "list") {
     const devices = pairing.list();
     if (devices.length === 0) {
-      process.stdout.write("no paired devices\n");
+      process.stdout.write(`no paired devices (data dir: ${config.dataDir})\n`);
       return;
     }
     for (const d of devices) {
       process.stdout.write(`${d.deviceId}  ${d.label}  ${d.createdAt}\n`);
     }
+    process.stdout.write(`data dir: ${config.dataDir}\n`);
     return;
   }
   if (sub === "revoke" && args[1] !== undefined) {
