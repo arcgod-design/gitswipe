@@ -1,0 +1,16 @@
+{
+  "name": "@jarvis/daemon",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@jarvis/policy": "0.1.0",
+    "@jarvis/protocol": "0.1.0"
+  }
+}

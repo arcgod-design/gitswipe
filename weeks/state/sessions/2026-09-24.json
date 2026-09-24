@@ -1,0 +1,31 @@
+{
+  "date": "2026-09-24",
+  "in_flight_week": "WEEK-00",
+  "week_status": "done (exit test passed: typecheck 4/4 workspaces clean, 54/54 tests green, daemon version+check commands run, audit 0 vulns)",
+  "verified": [
+    "npm run typecheck -> all 4 workspaces clean",
+    "npm test -> 54/54 passed (vitest 5.0.1, 7 files)",
+    "npm audit -> found 0 vulnerabilities",
+    "npm run daemon -- version -> jarvisd 0.1.0 (node 22.14.0, win32)",
+    "npm run daemon -- check -> git 2.54 ok, node 22.14 ok, policy 14 rules loaded, preflight OK"
+  ],
+  "files_touched": [
+    "all root docs (CLAUDE/PROJECT-CORE/PROJECT_STATUS/SESSION-STATE/NEXT-TASKS/USER-THING-TO-DO/SUGGESTIONS/README)",
+    "docs/{VISION,ARCHITECTURE,ROADMAP,REPO-WORK-CONVENTIONS}.md",
+    "weeks/WEEK-00..12.md, weeks/README.md, weeks/memory-protocol.md",
+    "doc-of-journey/* (daily log, ADR 0001-0004, topics)",
+    "packages/protocol/* (full domain contracts + 4 test files)",
+    "packages/policy/* (evaluate, commands, paths + 2 test files)",
+    "packages/providers/* (types, openai-compatible, anthropic, puter, registry, routing + 1 test file)",
+    "apps/daemon/src/index.ts",
+    ".github/workflows/ci.yml, .env.example, package.json, tsconfig.base.json, vitest.config.ts"
+  ],
+  "decisions_locked": [
+    "0001 greenfield stack + monorepo tooling",
+    "0002 repo=arcgod-design/gitswipe, no license yet",
+    "0003 safe defaults: unmatched->APPROVAL_REQUIRED, approval action-hash binding, session-state extensions",
+    "0004 dispatched tasks follow the ssoc git work pattern (REPO-WORK-CONVENTIONS.md)"
+  ],
+  "next_step": "Start WEEK-01 (weeks/WEEK-01.md): provider completeness + SecretStore (Windows Credential Manager) + routing API + daemon health command",
+  "user_blockers": ["U1 product name", "U2 license", "U3 GitHub OAuth creds (WEEK-02)", "U5 BYOK test keys (WEEK-01 live smoke)"]
+}

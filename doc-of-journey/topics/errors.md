@@ -1,0 +1,12 @@
+# topics/errors.md — append-only error catalog
+
+> Rule: any error costing >5 minutes gets an entry. Grep this file BEFORE debugging anything.
+
+## 2026-09-24
+
+- **PS 5.1 `Set-Content -Encoding utf8` writes BOMs into JSON** — npm/tsc tolerate them, tsx's package.json parser does not (`Error parsing: apps/daemon/package.json` from tsx `getPackageType`). Fix: rewrite with `[System.IO.File]::WriteAllText($path, $text, [UTF8Encoding]::new($false))`. Cost ~20 min including diagnosis. Any future .json written via PowerShell needs the no-BOM write.
+- **npm 10.2 arborist crash `Cannot read properties of null (reading 'edgesOut')`** when installing vitest@4 (optional-peer graph triggers a bug in `#loadPeerSet`). vitest@5.0.1 resolves cleanly and is the patched line for GHSA-82fw-gwwq-j7x9. Fix: jump vitest 3 → 5 directly; do not attempt 4. Cost ~15 min.
+- **`npm run <script> -- --flag`**: npm eats recognized flags (`--version`, `--check`) even after `--`. Fix: positional subcommands in CLIs (`npm run daemon -- check`), keep flags for direct invocation only. Cost ~10 min.
+- **node:http mock server with SSE**: `server.close()` hangs forever unless the handler calls `res.end()` AND teardown calls `server.closeAllConnections()`. Symptom: vitest afterEach hook timeout 10000ms cascading across unrelated tests. Cost ~10 min.
+- (also: write tool rejects raw-JSON content params — write .json via PowerShell, see tactics)
+

@@ -1,0 +1,41 @@
+# PROJECT_STATUS.md — honest capability ledger
+
+> Contract §1.9: never claim a capability works until it is executable and tested.
+> Labels: **WORKING** (code + tests green + runnable), **PROTO** (real code, untested against live service), **ROADMAP** (not built, scheduled).
+> Update this file whenever a label changes. If it is not listed, assume it does not exist.
+
+## WORKING
+
+| Capability | Where | Verified by |
+|---|---|---|
+| Domain contracts: event envelope, session/task state machines, task contract + markdown render, opportunity/swipe model, approval + action hashing, workstation handshake | `packages/protocol` | vitest: `npm test` |
+| Deterministic policy engine: rule evaluation, command classification (git/read/build/network), path sandbox checks (traversal, blocked paths, windows drives) + default safe ruleset (contract §26) | `packages/policy` | vitest: table-driven tests (contract §118) |
+| AI provider abstraction: OpenAI-compatible chat/stream/listModels/healthCheck (OpenAI, OpenRouter, Ollama, Gemini-compat), Anthropic chat/stream, registry presets, model routing, retry/rate-limit/error categories | `packages/providers` | vitest against local mock HTTP servers (no live keys used or needed) |
+| Daemon CLI: `npm run daemon -- --version` / `--check` (toolchain preflight) | `apps/daemon` | manual run 2026-09-24 |
+| Monorepo toolchain: npm workspaces, TS strict, vitest, CI workflow | root + `.github/workflows/ci.yml` | `npm run typecheck` + `npm test` green |
+| Session-resume documentation system (this file + SESSION-STATE + weeks + doc-of-journey) | repo root | n/a — process, verified by use |
+
+## PROTO
+
+| Capability | Where | Why not WORKING yet |
+|---|---|---|
+| Puter client-side AIProvider bridge (injected puter object, chat only) | `packages/providers/src/puter.ts` | Needs the browser puter.js runtime; wired and tested in WEEK-08. Never a daemon-side dependency. |
+| Daemon as a long-running process (identity, pairing, transport, journal) | `apps/daemon` | Skeleton only — WEEK-05 builds it. `--serve` explicitly reports not-implemented. |
+
+## ROADMAP (scheduled, contract sections in parens)
+
+- GitHub auth + ingestion: repos/issues/PRs, rate-limit handling (§8, §126) — WEEK-02
+- Discovery feed, swipe persistence, skill graph v0, diversity, "why this/why not" (§9, §14, §15, §78, §128) — WEEK-03
+- AI opportunity engine: repo analysis, evidence assembly, dedup pipeline, confidence gate, Reference mode, Project Radar (§10–§13) — WEEK-04
+- Workstation daemon v1: device identity, pairing codes, loopback+LAN transport, event journal, health (§22, §23, §107) — WEEK-05
+- AgentGateway + OpenCode adapter (HTTP/SSE → CLI fallback), mock agent, worktrees, follow-up/pause/resume/takeover (§17–§19, §29, §30) — WEEK-06
+- Security integration: policy enforcement on the exec path, credential broker, approval queue + replay protection, audit journal, redaction (§25–§28, §58, §74, §114) — WEEK-07
+- Web UI (taste-skill + ui-ux-pro-max pass): discover/swipe/sessions/approvals, event replay client, Puter auth optional path (§35, §36) — WEEK-08
+- Android via Capacitor: secure storage, notifications, offline cache, debug APK (§38) — WEEK-09
+- Hardening: reconnect/replay E2E, recovery, checkpoints, security fixtures (prompt injection, traversal), backpressure (§21, §32–§34, §62, §196) — WEEK-10
+- Packaging + CI/CD: Windows/macOS/Linux installers, release pipeline, docs complete (§37, §63, §101) — WEEK-11
+- Master acceptance scenario (§215) + release checklist (§207) — WEEK-12
+
+## Explicitly NOT built (and not scheduled before its week)
+
+Database (migrations land with the daemon journal in WEEK-05 — JSONL journal first), Puter Workers/shared index (post-v1, needs ADR), Harness adapter (WEEK-06 interface only), Tailscale transport (optional, post-v1), relay service.
