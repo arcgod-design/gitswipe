@@ -74,14 +74,16 @@
 | E5 | Localhost API: authenticated loopback session token, CORS/origin locked (§148/§149) | TODO | |
 | E6 | Health report + heartbeats (§88/§195) + task queue durability (§111/§112) | TODO | |
 
-## MVP track (parallel — branch `mvp`, plan in docs/MVP-PLAN.md, locked PROJECT-CORE #23)
+## MVP track (parallel — branch `mvp`, plan in docs/MVP-PLAN.md, locked PROJECT-CORE #23) — ✅ TRACK COMPLETE 2026-09-24
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| M1 | Minimal daemon serve: loopback HTTP + loopback token + feed/swipe/contract API over the real engines | ✅ DONE (2026-09-24) | 8 integration tests + live verification |
-| M2 | Event journal + SSE with replay + deterministic mock agent (contract §202 script) | ✅ DONE (2026-09-24) | full 17-event lifecycle incl. preflight + approval gate with real action-hash binding; deny → PAUSED; replay-from-cursor verified |
-| M3 | **Taste-skill + ui-ux-pro-max design pass** → swipe feed + contract view + session screen + approval card | TODO | mandatory per PROJECT-CORE #15/#23; no UI code before the pass |
-| M4 | Demo data fixtures + DEMO badge + demo-reset; isolation from real creds (§201) | PARTIAL | fixtures + badge + isolation live since M1; demo-reset endpoint remains |
+| M1 | Minimal daemon serve: loopback HTTP + loopback token + feed/swipe/contract API over the real engines | ✅ DONE | 8 integration tests + live verification |
+| M2 | Event journal + SSE with replay + deterministic mock agent (contract §202 script) | ✅ DONE | 17-event lifecycle, real approval binding, deny → PAUSED, replay verified |
+| M3 | Taste-skill + ui-ux-pro-max design pass → swipe feed + contract view + session screen + approval card | ✅ DONE | design system: slate dark + green run-accent, Space Grotesk/DM Sans/JetBrains Mono, phosphor icons; reduced-motion gated; keyboard swipe; built + served + traversal-safe; visual browser confirmation is the user's first run |
+| M4 | Demo data fixtures + DEMO badge + demo-reset; isolation from real creds (§201) | ✅ DONE | fixtures + badge + reset endpoint; no SecretStore access in demo mode |
+
+**Pitch run:** `npm install && npm run build:web && npm run demo` → open the printed URL (with `?token=`) → swipe → contract → session → approve → PR-draft summary → Reset demo.
 
 ## Standing items (user-side)
 

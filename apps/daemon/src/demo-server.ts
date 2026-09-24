@@ -1,9 +1,9 @@
 import { createServer, type Server } from "node:http";
 import { randomUUID } from "node:crypto";
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
-import { z } from "zod";
-import { SWIPE_ACTIONS, newId } from "@jarvis/protocol";
+import { mkdirSync, readFileSync, statSync } from "node:fs";
+import { dirname, extname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { z } from "zod";import { SWIPE_ACTIONS, newId } from "@jarvis/protocol";
 import { TaskContractSchema, toMarkdown, type TaskContract } from "@jarvis/protocol";
 import { buildCandidate, type Candidate } from "@jarvis/discovery";
 import { JsonlSwipeStore } from "@jarvis/discovery";
@@ -26,7 +26,48 @@ export interface DemoServerHandle {
   close(): Promise<void>;
 }
 
-export function startDemoServer(opts: { port?: number; dataDir: string }): Promise<DemoServerHandle> {
+const MIME: Record<string, string> = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript",
+  ".css": "text/css",
+  ".svg": "image/svg+xml",
+  ".woff2": "font/woff2",
+  ".json": "application/json",
+  ".png": "image/png",
+  ".ico": "image/x-icon",
+  ".map": "application/json",
+};
+
+const DEFAULT_WEB_ROOT = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../../apps/daemon/public",
+);
+
+function serveStatic(res: import("node:http").ServerResponse, pathname: string, webRoot: string): void {
+  const clean = pathname === "/" ? "/index.html" : pathname;
+  const target = resolve(webRoot, `.${clean}`);
+  if (!target.startsWith(webRoot)) {
+    res.writeHead(403, { "Content-Type": "text/plain" });
+    res.end("forbidden");
+    return;
+  }
+  let isFile = false;
+  try {
+    isFile = statSync(target).isFile();
+  } catch {
+    isFile = false;
+  }
+  if (!isFile) {
+    res.writeHead(404, { "Content-Type": "text/plain", "x-demo-mode": "true" });
+    res.end("not found - run 'npm run build -w @jarvis/web' to build the demo UI");
+    return;
+  }
+  const type = MIME[extname(target).toLowerCase()] ?? "application/octet-stream";
+  res.writeHead(200, { "Content-Type": type, "x-demo-mode": "true", "Cache-Control": "no-store" });
+  res.end(readFileSync(target));
+}
+
+export function startDemoServer(opts: { port?: number; dataDir: string; webRoot?: string }): Promise<DemoServerHandle> {
   const token = randomUUID();
   mkdirSync(opts.dataDir, { recursive: true });
   const swipeStore = new JsonlSwipeStore(join(opts.dataDir, "demo-swipes.jsonl"));
@@ -93,6 +134,10 @@ export function startDemoServer(opts: { port?: number; dataDir: string }): Promi
 
     if (url.pathname === "/healthz") {
       respond(200, { ok: true, demo: true });
+      return;
+    }
+    if (!url.pathname.startsWith("/api/")) {
+      serveStatic(res, url.pathname, opts.webRoot ?? DEFAULT_WEB_ROOT);
       return;
     }
     if (url.pathname.startsWith("/api/")) {

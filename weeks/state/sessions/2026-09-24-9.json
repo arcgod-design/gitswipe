@@ -1,0 +1,20 @@
+{
+  "date": "2026-09-24 (session 9)",
+  "in_flight_week": "MVP track M3 (branch: mvp)",
+  "week_status": "M3 done (design pass + UI built + served + traversal-safe). MVP TRACK COMPLETE: M1+M2+M3+M4. Visual browser confirmation is the user's first npm run demo",
+  "verified": [
+    "npm run typecheck -> 6/6 workspaces clean",
+    "npm test -> 132/132 (17 files)",
+    "npm run build:web -> clean build to apps/daemon/public",
+    "live: GET / -> 200 text/html; traversal ../ and ..%2f -> 404; /api/feed with token -> 4 ranked cards"
+  ],
+  "files_touched": [
+    "apps/web/* (package.json, tsconfig Bundler, vite.config, index.html, src/{main,App,api,sse,styles} + test/sse.test.ts)",
+    "apps/daemon/src/demo-server.ts (static serving, webRoot anchored, traversal-safe)",
+    ".gitignore (apps/daemon/public is a build artifact), root scripts (demo, build:web)",
+    "NEXT-TASKS.md (MVP track complete), doc-of-journey/daily/2026-09-24-9.md"
+  ],
+  "decisions_locked": [],
+  "next_step": "Two options for the next session: (a) user runs the pitch demo in a browser and we polish from feedback; (b) dev ladder resumes: WEEK-05 (E1-E6) on dev branch - the daemon becomes production real (identity, pairing, transport, journal, localhost API auth, health, durable queue), absorbing M1/M2 patterns",
+  "user_blockers": ["U5 PAT (live GitHub smoke)", "U5 BYOK key (live AI smoke)", "U2 license (pre-release)"]
+}
