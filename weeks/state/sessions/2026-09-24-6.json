@@ -1,22 +1,26 @@
 {
   "date": "2026-09-24 (session 6)",
   "in_flight_week": "branch model setup (between weeks)",
-  "week_status": "ADR 0007 locked and executed: dev/main/mvp branches live; main tagged v0.1.0 via first verified merge; CI on all three branches",
+  "week_status": "ADR 0007 locked and executed: dev/main/mvp branches live; main protected (no force-push/delete) and tagged v0.1.0 via first verified merge; CI on all three branches. MVP scope confirmed by user: full demo loop, built in parallel (PROJECT-CORE #23, docs/MVP-PLAN.md)",
   "verified": [
     "npm run typecheck -> 5/5 workspaces clean (on dev)",
     "npm test -> 116/116 passed (14 files)",
-    "git branch -> dev (current), main, mvp",
-    "git push origin dev mvp main --tags -> all up to date at origin"
+    "git push origin dev mvp main --tags -> all live at origin",
+    "gh api branch protection on main -> allow_force_pushes:false, allow_deletions:false (confirmed in API response)"
   ],
   "files_touched": [
     "doc-of-journey/decisions/0007-branch-model.md",
+    "docs/MVP-PLAN.md",
     "CLAUDE.md (hard rules: branch model)",
     "weeks/memory-protocol.md (push to dev + milestone merge procedure)",
     ".github/workflows/ci.yml (branches: main, dev, mvp)",
-    "PROJECT-CORE.md (decision #22)",
-    "SESSION-STATE.md, daily/2026-09-24-6.md"
+    "PROJECT-CORE.md (decisions #22, #23)",
+    "NEXT-TASKS.md (MVP track M1-M4), SESSION-STATE.md, daily/2026-09-24-6.md"
   ],
-  "decisions_locked": ["0007 branch model: dev=development, main=verified release merges (tagged vX.Y.Z), mvp=pitch/demo slice"],
-  "next_step": "WEEK-05 on dev (weeks/WEEK-05.md): daemon as a real long-running process - config precedence, device identity + pairing codes, loopback+LAN transport, JSONL event journal with replay, authenticated localhost API, health/heartbeats, durable task queue",
-  "user_blockers": ["U5 PAT for live GitHub smoke", "U5 BYOK key for live AI smoke", "U2 license (pre-release)", "MVP slice scope confirmation (see SESSION-STATE)"]
+  "decisions_locked": [
+    "0007 branch model: dev=development, main=verified release merges (tagged vX.Y.Z), mvp=pitch/demo slice",
+    "MVP slice = full demo loop (PROJECT-CORE #23), parallel build, taste-skill pass mandatory for its UI"
+  ],
+  "next_step": "Two parallel tracks: (a) MVP track M1-M4 on the mvp branch per docs/MVP-PLAN.md - minimal daemon serve first; (b) dev ladder WEEK-05 E1-E6. Both resume from this file",
+  "user_blockers": ["U5 PAT for live GitHub smoke", "U5 BYOK key for live AI smoke", "U2 license (pre-release)"]
 }
