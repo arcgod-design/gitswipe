@@ -165,12 +165,83 @@ async function githubCommand(args: string[]): Promise<void> {
   process.exit(1);
 }
 
-function serve(): never {
-  process.stderr.write(
-    "jarvisd: long-running workstation service ships in WEEK-05 (weeks/WEEK-05.md). " +
-      "Nothing is listening; refusing to pretend. Use 'check', 'health', or 'secret'.\n",
+async function serveCommand(): Promise<void> {
+  const { loadConfig } = await import("./workstation/config.js");
+  const { loadOrCreateIdentity } = await import("./workstation/identity.js");
+  const { PairingService } = await import("./workstation/pairing.js");
+  const { WorkstationJournal, journalPath } = await import("./workstation/journal.js");
+  const { DurableQueue, queuePath } = await import("./workstation/queue.js");
+  const { gatherHealth } = await import("./workstation/health.js");
+  const { startWorkstationServer } = await import("./workstation/server.js");
+
+  const config = loadConfig();
+  const identity = loadOrCreateIdentity(config.dataDir);
+  const pairing = new PairingService(config.dataDir, config.pairingTtlMs);
+  const journal = new WorkstationJournal(journalPath(config.dataDir));
+  const queue = new DurableQueue(queuePath(config.dataDir));
+
+  const handle = await startWorkstationServer({
+    config,
+    identity,
+    pairing,
+    journal,
+    queue,
+    health: () => gatherHealth(config.dataDir),
+  });
+
+  process.stdout.write(
+    [
+      "",
+      `  GitSwipe workstation — serving on ${config.bind}:${config.port} (${identity.deviceId})`,
+      `  journal: ${journal.latest()} events recovered | queue: ${queue.list().length} tasks recovered`,
+      "",
+      "  Pair a device: jarvisd pair   then POST /api/pair from the client.",
+      "  Stop with Ctrl+C.",
+      "",
+    ].join("\n"),
   );
-  process.exit(2);
+  const shutdown = () => {
+    void handle.close().finally(() => process.exit(0));
+  };
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
+}
+
+async function pairCommand(): Promise<void> {
+  const { loadConfig } = await import("./workstation/config.js");
+  const { PairingService } = await import("./workstation/pairing.js");
+  const config = loadConfig();
+  const pairing = new PairingService(config.dataDir, config.pairingTtlMs);
+  const { code, expiresAt } = pairing.issueCode();
+  const minutes = Math.round((expiresAt - Date.now()) / 60_000);
+  process.stdout.write(`\n  PAIRING CODE\n  ${code}\n  expires in ${minutes} min, single use\n\n`);
+}
+
+async function devicesCommand(args: string[]): Promise<void> {
+  const { loadConfig } = await import("./workstation/config.js");
+  const { PairingService } = await import("./workstation/pairing.js");
+  const config = loadConfig();
+  const pairing = new PairingService(config.dataDir, config.pairingTtlMs);
+  const sub = args[0] ?? "";
+  if (sub === "list") {
+    const devices = pairing.list();
+    if (devices.length === 0) {
+      process.stdout.write("no paired devices\n");
+      return;
+    }
+    for (const d of devices) {
+      process.stdout.write(`${d.deviceId}  ${d.label}  ${d.createdAt}\n`);
+    }
+    return;
+  }
+  if (sub === "revoke" && args[1] !== undefined) {
+    const ok = pairing.revoke(args[1]);
+    process.stdout.write(ok ? `revoked: ${args[1]}\n` : `unknown device: ${args[1]}\n`);
+    process.exitCode = ok ? 0 : 1;
+    return;
+  }
+  process.stderr.write("usage:\n  jarvisd devices list\n  jarvisd devices revoke <deviceId>\n");
+  process.exit(1);
 }
 
 const arg = (process.argv[2] ?? "").replace(/^--/, "");
@@ -191,7 +262,13 @@ switch (arg) {
     await secretCommand(process.argv.slice(3));
     break;
   case "serve":
-    serve();
+    await serveCommand();
+    break;
+  case "pair":
+    await pairCommand();
+    break;
+  case "devices":
+    await devicesCommand(process.argv.slice(3));
     break;
   default:
     process.stdout.write(
@@ -203,7 +280,10 @@ switch (arg) {
         "  jarvisd health         provider health (JARVIS_PROVIDERS=comma,list)",
         "  jarvisd github check   verify GitHub token + print login + rate budget",
         "  jarvisd secret <cmd>   BYOK key store (OS credential store)",
-        "  jarvisd serve          start the workstation service (WEEK-05)",
+        "  jarvisd serve          start the workstation service (loopback default)",
+        "  jarvisd pair           issue a single-use pairing code (10 min)",
+        "  jarvisd devices <cmd>  list | revoke <deviceId>",
+        "  jarvisd demo [--port=N] start the pitch demo (fixture data, loopback only)",
         "",
       ].join("\n"),
     );

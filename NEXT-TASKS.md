@@ -11,8 +11,8 @@
 | WEEK-02 | GitHub auth + ingestion | ✅ DONE (2026-09-24; live smoke pending user token) |
 | WEEK-03 | Discovery feed + swipes + skill graph v0 | ✅ DONE (2026-09-24) |
 | WEEK-04 | AI opportunity engine + reference mode + radar | ✅ DONE (2026-09-24) |
-| WEEK-05 | Workstation daemon v1 (identity/pairing/transport/journal) | NEXT — current (dev) + mvp pulls E3/E4/E5 forward |
-| WEEK-06 | AgentGateway + OpenCode adapter + worktrees + PR lifecycle | PENDING |
+| WEEK-05 | Workstation daemon v1 (identity/pairing/transport/journal) | ✅ DONE (2026-09-24; 129/129 dev tests + live cross-process pair verification) |
+| WEEK-06 | AgentGateway + OpenCode adapter + worktrees + PR lifecycle | NEXT — current |
 | WEEK-07 | Security integration (policy on exec path, broker, approvals, audit) | PENDING |
 | WEEK-08 | Web UI (taste-skill pass) + Puter optional auth | PENDING |
 | WEEK-09 | Android (Capacitor, notifications, offline, APK) | PENDING |
