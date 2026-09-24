@@ -31,6 +31,7 @@ Not "an AI chatbot for GitHub". The core loop (contract §214): DISCOVER → UND
 | 19 | Task contracts carry an embedded `git_workflow` block (branch naming, remotes, gates, lifecycle rules) so agents receive the pattern in-band; workstation enforces deny-rules regardless of agent behavior | ADR 0004 | 2026-09-24 |
 | 20 | **Public product name = GitSwipe.** "Jarvis" remains internal codename (`@jarvis/*` packages, `jarvis-workstation` protocol id, protocol types) — renaming them is churn + wire breakage; new ADR required to ever change | ADR 0005, user decision | 2026-09-24 |
 | 21 | Contribution workspace root = **user-provided** (designated at workstation setup, WEEK-06 config); GitSwipe never defaults into an existing personal folder like ssoc | ADR 0005, user decision | 2026-09-24 |
+| 22 | **Branch model (ADR 0007)**: `dev` = all development (WEEK ladder); `main` = verified merges only, tagged `vX.Y.Z`; `mvp` = pitch/demo slice. Baseline tag `v0.1.0` = WEEK-00..04 | User directive | 2026-09-24 |
 
 ## Verified facts (toolchain, this machine)
 

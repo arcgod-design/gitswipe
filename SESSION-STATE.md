@@ -31,3 +31,10 @@
 ## Docs health
 
 All current; daily log `2026-09-24-5.md`; state JSON `2026-09-24-5.json`.
+
+## Branch model (ADR 0007 — live as of session 6, same day)
+
+- `dev` = current branch + all future ladder work (session pushes target dev)
+- `main` = verified merges only; baseline release tagged **v0.1.0** (WEEK-00..04)
+- `mvp` = pitch/demo slice (branched from dev; demo shortcuts labeled per contract §201)
+- Next merge to main = next verified milestone (WEEK-05 exit test green)
