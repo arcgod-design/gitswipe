@@ -9,8 +9,8 @@
 | WEEK-00 | Foundation (docs, monorepo, protocol/policy/providers cores, daemon CLI) | ✅ DONE (2026-09-24) |
 | WEEK-01 | Provider completeness + OS credential store | ✅ DONE (2026-09-24) |
 | WEEK-02 | GitHub auth + ingestion | ✅ DONE (2026-09-24; live smoke pending user token) |
-| WEEK-03 | Discovery feed + swipes + skill graph v0 | NEXT — current |
-| WEEK-04 | AI opportunity engine + reference mode + radar | PENDING |
+| WEEK-03 | Discovery feed + swipes + skill graph v0 | ✅ DONE (2026-09-24) |
+| WEEK-04 | AI opportunity engine + reference mode + radar | NEXT — current |
 | WEEK-05 | Workstation daemon v1 (identity/pairing/transport/journal) | PENDING |
 | WEEK-06 | AgentGateway + OpenCode adapter + worktrees + PR lifecycle | PENDING |
 | WEEK-07 | Security integration (policy on exec path, broker, approvals, audit) | PENDING |
@@ -41,16 +41,27 @@
 | B5 | Fixtures: closed/reopened issues, stale issues, rate-limit 429 responses, permission-changed tokens | ✅ DONE | all in vitest vs mock server |
 | B6 | Revalidation primitive: checkIssueState before task start | ✅ DONE | open/closed/not_found/permission_denied |
 
-## WEEK-03 task list (current)
+## WEEK-03 task list (✅ DONE 2026-09-24 — 99/99 tests repo-wide)
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| C1 | Candidate/opportunity model wired to ingestion: 8 explicit kinds (contract §9.1) | TODO | kinds never merged into one opaque type |
-| C2 | Feed API: pre-fetched swipe queue (small, lazy deep analysis), staleness timestamps | TODO | contract §129, §125 |
-| C3 | Swipe persistence + feedback vocabulary (§9.3) + why-not reasons | TODO | |
-| C4 | Skill graph v0: explicit skills + GitHub history + swipe signal, deterministic scoring | TODO | contract §14; "learned from your activity" framing, never objective truth |
-| C5 | Hybrid ranker v0: deterministic features + user-history signals, explainable ranking records | TODO | contract §15/§173; no "objectively best" claims (§70) |
-| C6 | Diversity constraints (language/repo/domain/difficulty) + card contract fields | TODO | contract §128, §9.2 |
+| C1 | Candidate/opportunity model wired to ingestion: 8 explicit kinds (contract §9.1) | ✅ DONE | EXISTING_ISSUE + STALE_ISSUE classified from live data; AI/reference kinds join via the same `OpportunityKind` in WEEK-04 — never one opaque type |
+| C2 | Feed API: pre-fetched swipe queue (small, lazy deep analysis), staleness timestamps | ✅ DONE (engine) | `buildFeedPage` produces the full page; HTTP serving lands with the daemon in WEEK-05; deep analysis is WEEK-04 and stays lazy by design |
+| C3 | Swipe persistence + feedback vocabulary (§9.3) + why-not reasons | ✅ DONE | JSONL store, zod-validated actions |
+| C4 | Skill graph v0: explicit skills + GitHub history + swipe signal, deterministic scoring | ✅ DONE | right +3, wrong-stack → zero match; embeddings later |
+| C5 | Hybrid ranker v0: deterministic features + user-history signals, explainable ranking records | ✅ DONE | skill/clarity/freshness/saved-similarity + reasons per card |
+| C6 | Diversity constraints (language/repo/difficulty) + card contract fields | ✅ DONE | caps push overflow to whyNot with an explicit diversity reason |
+
+## WEEK-04 task list (current)
+
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| D1 | Dedup classifier v0: exact duplicate + lexical/semantic-candidate detection (contract §11, embeddings later) | TODO | never let a single signal decide duplicate |
+| D2 | Finding pipeline: candidate → evidence assembly → confidence gate (§10.2/§10.3, §168 quality checklist) | TODO | weak evidence → hypothesis label, never "unique bug" |
+| D3 | AI analysis prompts behind provider routing (§7.2) — analysis prompt + structured output + model/version stamps | TODO | mock-tested; live needs BYOK key |
+| D4 | Revalidation-before-work wiring: cited code exists, issue still open (§10.4/§57) | TODO | builds on checkIssueState |
+| D5 | Reference mode: separate WORK vs REFERENCE feeds, explicit relevance reasons (§12, §169) | TODO | |
+| D6 | Project radar foundations: registered projects, radar item types (§13) | TODO | dependency advisories, missing tests, stale TODOs |
 
 ## Standing items (user-side)
 

@@ -1,5 +1,5 @@
 # topics/in-progress.md — current focus
 
-- **In-flight week**: WEEK-02 — ✅ DONE (2026-09-24, session 3; live smoke pending user token). Status: `SESSION-STATE.md`.
-- **Next week**: WEEK-03 — discovery feed. Read `weeks/WEEK-03.md` + the NEXT-TASKS WEEK-03 table first. First task: candidate/opportunity model with 8 explicit kinds (contract s9.1).
+- **In-flight week**: WEEK-03 — ✅ DONE (2026-09-24, session 4). Status: `SESSION-STATE.md`.
+- **Next week**: WEEK-04 — AI opportunity engine. Read `weeks/WEEK-04.md` + the NEXT-TASKS WEEK-04 table first. First task: dedup classifier v0 (exact + lexical candidate signals, contract s11).
 - **Pointers**: repo-root `SESSION-STATE.md` (human state), `weeks/state/current.json` (machine state), `NEXT-TASKS.md` (board).

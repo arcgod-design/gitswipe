@@ -1,0 +1,17 @@
+{
+  "date": "2026-09-24 (session 4)",
+  "in_flight_week": "WEEK-03",
+  "week_status": "done (exit test green: swipe persists + measurably changes next ranking; every card explainable; whyNot + showAnyway; diversity caps)",
+  "verified": [
+    "npm run typecheck -> 5/5 workspaces clean (incl. @jarvis/discovery)",
+    "npm test -> 99/99 passed (12 files)",
+    "npm audit -> 0 vulnerabilities"
+  ],
+  "files_touched": [
+    "packages/discovery/* (candidate, swipes, skills, rank, feed, index + test/discovery.test.ts)",
+    "PROJECT_STATUS.md, NEXT-TASKS.md (WEEK-03 done + WEEK-04 board), SESSION-STATE.md, weeks/WEEK-00.md handoff, weeks/WEEK-03.md status, daily/2026-09-24-4.md"
+  ],
+  "decisions_locked": [],
+  "next_step": "Start WEEK-04 (weeks/WEEK-04.md): dedup classifier v0 (exact + lexical), finding pipeline (evidence + confidence gate), AI analysis prompts behind routing (mock-tested), reference mode, radar foundations",
+  "user_blockers": ["U5 PAT for live GitHub smoke", "U5 BYOK key for live AI smoke", "U2 license (pre-release)"]
+}

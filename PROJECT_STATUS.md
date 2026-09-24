@@ -21,6 +21,11 @@
 | Normalized entities (Repository/Issue/PR) zod-validated at boundary; stale detection (>90d untouched open); PR-in-issues-list separation | `packages/github/src/entities.ts` | vitest with contract §205 fixtures |
 | JSONL candidate store: append/upsert (first_seen preserved on update, last_sync bumped), tmp+rename atomic writes | `packages/github/src/store.ts` | vitest |
 | Ingestion + revalidation: repo fetch, issues/PRs ingest with counts (issues/PRs/stale), `checkIssueState` (open/closed/not_found/permission_denied) before any task start | `packages/github/src/ingest.ts` | vitest |
+| Discovery engine: candidate classification (EXISTING_ISSUE/STALE_ISSUE today; AI kinds arrive WEEK-04 behind the same model), clarity heuristics, staleness | `packages/discovery/src/candidate.ts` | vitest |
+| Swipe store: JSONL persistence, contract §9.3 action vocabulary + why-not reasons, zod-validated | `packages/discovery/src/swipes.ts` | vitest |
+| Skill graph v0: language weights from history + swipes (right boosts, wrong-stack rejects to zero match), deterministic, "learned from activity" framing only | `packages/discovery/src/skills.ts` | vitest |
+| Hybrid ranker v0: skill-match + clarity + freshness + saved-similarity, explainable RankingReason[] per card, below-threshold → whyNot with showAnyway, diversity caps (language/repo) | `packages/discovery/src/rank.ts` | vitest — incl. the exit test: a right-swipe measurably changes the next ranking |
+| Feed cards: schema-validated FeedCard/FeedPage (contract §9.2 card fields, scores as recommendation signals) | `packages/discovery/src/feed.ts` | vitest |
 | Daemon CLI: `version` / `check` (preflight) / `health` (provider health — honest FAIL + exit 1) / `github check` (token + /user + rate budget) / `secret set|get|list|delete` (DPAPI-backed, masked display) | `apps/daemon` | manual runs 2026-09-24 |
 | Monorepo toolchain: npm workspaces, TS strict, vitest 5, CI workflow | root + `.github/workflows/ci.yml` | `npm run typecheck` + `npm test` green (75/75) |
 | Session-resume documentation system (this file + SESSION-STATE + weeks + doc-of-journey) | repo root | n/a — process, verified by use |

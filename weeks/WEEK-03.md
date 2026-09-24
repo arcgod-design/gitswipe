@@ -1,6 +1,8 @@
 # WEEK-03 — Discovery: candidate model, feed, swipes, skill graph v0, diversity
 
 > Exit test: a ranked feed served from fixtures; a swipe persists and measurably changes the next ranking; every card carries explainable reasons ("why this"), and rejected cards carry "why not" + show-anyway.
+>
+> **STATUS: ✅ DONE 2026-09-24** — 99/99 repo-wide; the swipe-changes-ranking exit test is `discovery.test.ts > rankFeed > a right-swipe measurably changes the next ranking`. HTTP feed serving lands with the daemon (WEEK-05); deep AI analysis is WEEK-04 and stays lazy.
 
 ## Scope
 

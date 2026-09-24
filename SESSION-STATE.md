@@ -1,33 +1,32 @@
-# SESSION-STATE.md — as of 2026-09-24 (WEEK-02 complete)
+# SESSION-STATE.md — as of 2026-09-24 (WEEK-03 complete)
 
 ## Current week
 
-**WEEK-02** — ✅ **DONE (fixture-driven).** GitHub client with pagination/ETag/backoff/rate-budget; fine-grained PAT auth (ADR 0006) through the OS secret store; zod-normalized entities with stale detection; JSONL candidate store; `checkIssueState` revalidation; `jarvisd github check` live-smoke command. Live smoke = blocked on user token (honest failure verified).
+**WEEK-03** — ✅ **DONE.** Discovery engine: candidate classification (EXISTING_ISSUE/STALE_ISSUE live; AI kinds join in WEEK-04 behind the same model), swipe store (§9.3 vocabulary), skill graph v0 (swipe-driven weights), explainable hybrid ranker v0 (skill/clarity/freshness/saved-similarity + whyNot + showAnyway), diversity caps, schema-validated feed cards. The exit test — a right-swipe measurably changes the next ranking — is green.
 
 ## Stack state
 
 - Node 22.14, TS 5.9, zod 3.25, vitest 5.0.1, tsx 4.20. npm audit: 0 vulns.
-- 88 tests / 11 files (~2s): protocol 20 + policy 22 + providers 33 + github 13.
-- Packages: `@jarvis/protocol` (domain contracts), `@jarvis/policy` (14-rule engine), `@jarvis/providers` (adapters + secrets + router + failover), `@jarvis/github` (client + entities + ingestion + store + revalidation), `@jarvis/daemon` (CLI: version/check/health/github check/secret).
-- ADRs: 0001–0006.
+- 99 tests / 12 files (~2s): protocol 20 + policy 22 + providers 33 + github 13 + discovery 11.
+- Packages: `@jarvis/protocol`, `@jarvis/policy`, `@jarvis/providers`, `@jarvis/github`, `@jarvis/discovery`, `@jarvis/daemon` (CLI: version/check/health/github check/secret).
+- ADRs 0001–0006.
 
 ## Verified this session (exact commands, real outputs)
 
-- `npm run typecheck` → 4/4 workspaces clean (now includes @jarvis/github)
-- `npm test` → 88/88 passed
-- `npm run daemon -- github check` → "no GitHub token configured. Set one: 'jarvisd secret set github:token'" + exit 1 (honest)
-- `npm run daemon -- github` → usage text + exit 1
+- `npm run typecheck` → 5/5 workspaces clean (discovery included)
+- `npm test` → 99/99 passed
+- `npm audit` → 0 vulnerabilities
 
 ## Known pain points
 
-- Same as prior sessions (OneDrive churn; PS 5.1 UTF-8 regex hazard; vitest 3→5 only).
-- GitHub 403 handling nuance: 403 with `x-ratelimit-remaining: 0` maps to RATE_LIMITED (with backoff), otherwise AUTH_FAILURE — tested both.
+- Ranker ties: stable sort keeps candidate order on equal scores — tests must not assume tie-breaks; seed dominant weights for deterministic scenarios.
+- Same recurring machine hazards (OneDrive churn, PS 5.1 UTF-8 regex, vitest 3→5 only).
 
 ## Next concrete steps
 
-1. **WEEK-03**: candidate/opportunity model (8 explicit kinds), feed queue (small pre-fetch, lazy deep analysis), swipe persistence + why-not vocabulary, skill graph v0 (deterministic), hybrid ranker v0 with explainable records, diversity constraints. Read `weeks/WEEK-03.md`.
-2. User: fine-grained PAT via `jarvisd secret set github:token` whenever ready → rerun `github check` for the live smoke (U3/#5).
+1. **WEEK-04**: dedup classifier v0 (exact + lexical candidate signals, embeddings later — contract §11), finding pipeline (evidence assembly + confidence gate + §168 quality checklist, weak evidence → hypothesis), AI analysis prompts behind model routing (mock-tested), revalidation wiring, reference mode, radar foundations. Read `weeks/WEEK-04.md`.
+2. User whenever ready: PAT via `jarvisd secret set github:token` → `github check` live smoke.
 
 ## Docs health
 
-All current; ADR 0006 added; PROJECT_STATUS/NEXT-TASKS/week files/state JSONs updated this session.
+All current; PROJECT_STATUS/NEXT-TASKS/week files/state updated this session; daily log `2026-09-24-4.md`.

@@ -15,8 +15,8 @@
 
 ## Rolling handoff (update every session)
 
-- **Date**: 2026-09-24 (session 3)
-- **In-flight week**: WEEK-02 — ✅ DONE (GitHub client: pagination/ETag/backoff/rate-budget; fine-grained PAT auth ADR 0006; normalized entities + fixtures; JSONL candidate store; checkIssueState; `jarvisd github check`). Live smoke pending user token. NEXT: WEEK-03.
+- **Date**: 2026-09-24 (session 4)
+- **In-flight week**: WEEK-03 — ✅ DONE (discovery engine: candidates/8-kind model, swipe store, skill graph v0, explainable ranker + diversity, feed cards; swipe→ranking exit test green). NEXT: WEEK-04.
 - **Stack state**: see `SESSION-STATE.md` (as of 2026-09-24).
-- **Next concrete step**: start WEEK-03 per `weeks/WEEK-03.md` — candidate/opportunity model (8 kinds), feed queue, swipe persistence, skill graph v0, hybrid ranker v0 with explanations, diversity.
-- **Blockers**: user items in `USER-THING-TO-DO.md` (#5 token for live GitHub smoke; #3 OAuth creds now optional — ADR 0006 made PAT primary).
+- **Next concrete step**: start WEEK-04 per `weeks/WEEK-04.md` — dedup classifier v0 (exact + lexical, embeddings later), finding pipeline (evidence + confidence gate), AI analysis prompts behind routing, reference mode, radar foundations.
+- **Blockers**: user items in `USER-THING-TO-DO.md` (#5 PAT for live GitHub smoke; BYOK key for live AI-analysis smoke — mock tests need nothing).
