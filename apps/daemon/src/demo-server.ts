@@ -3,13 +3,15 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
-import { SWIPE_ACTIONS } from "@jarvis/protocol";
-import { TaskContractSchema, newId, toMarkdown, type TaskContract } from "@jarvis/protocol";
+import { SWIPE_ACTIONS, newId } from "@jarvis/protocol";
+import { TaskContractSchema, toMarkdown, type TaskContract } from "@jarvis/protocol";
 import { buildCandidate, type Candidate } from "@jarvis/discovery";
 import { JsonlSwipeStore } from "@jarvis/discovery";
 import { applySwipe, emptyGraph, seedFromLanguages, type SkillGraph } from "@jarvis/discovery";
 import { rankFeed, type RankOutcome } from "@jarvis/discovery";
 import { buildFeedPage, type FeedPage } from "@jarvis/discovery";
+import { SessionJournal } from "./journal.js";
+import { MockAgentSession } from "./mock-agent.js";
 import { DEMO_COMMIT_IDENTITY, DEMO_NOTICE, DEMO_WORKTREE_ROOT, demoIssues, demoLanguageSeed, demoRepoMap } from "./demo-data.js";
 
 export interface DemoFeedPayload extends FeedPage {
@@ -34,6 +36,9 @@ export function startDemoServer(opts: { port?: number; dataDir: string }): Promi
     buildCandidate(item, demoRepoMap().get(item.repo_full_name) ?? null),
   );
   const candidateByKey = new Map(candidates.map((c) => [c.key, c]));
+  const sessions = new Map<string, { agent: MockAgentSession; journal: SessionJournal; candidate: Candidate }>();
+  const sessionsDir = join(opts.dataDir, "demo-sessions");
+  mkdirSync(sessionsDir, { recursive: true });
 
   function currentOutcome(): RankOutcome {
     return rankFeed(candidates, graph, swipeStore.readAll());
@@ -44,6 +49,35 @@ export function startDemoServer(opts: { port?: number; dataDir: string }): Promi
     return { ...page, demo: true, notice: DEMO_NOTICE };
   }
 
+  function startSession(candidate: Candidate): { sessionId: string; state: string } {
+    const sessionId = newId("sess");
+    const taskId = newId("task");
+    const journal = new SessionJournal(join(sessionsDir, `${sessionId}.jsonl`));
+    const branch = demoBranchFor(candidate);
+    const agent = new MockAgentSession({
+      sessionId,
+      taskId,
+      userId: "usr_demo",
+      workstationId: "ws_demo_local",
+      repository: candidate.repoFullName,
+      branch,
+      journal,
+    });
+    sessions.set(sessionId, { agent, journal, candidate });
+    const stateAtCreation = agent.currentState();
+    agent.start();
+    return { sessionId, state: stateAtCreation };
+  }
+
+  function demoBranchFor(candidate: Candidate): string {
+    const slug = candidate.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "")
+      .slice(0, 40);
+    return `feat/issue-${candidate.number}-${slug || "task"}`;
+  }
+
   const server = createServer((req, res) => {
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     void handle(req, res, url).catch((err: unknown) => {
@@ -52,8 +86,7 @@ export function startDemoServer(opts: { port?: number; dataDir: string }): Promi
     });
   });
 
-  async function handle(req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse, url: URL): Promise<void> {
-    const respond = (status: number, body: unknown, headers: Record<string, string> = {}): void => {
+  async function handle(req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse, url: URL): Promise<void> {    const respond = (status: number, body: unknown, headers: Record<string, string> = {}): void => {
       res.writeHead(status, { "Content-Type": "application/json", "x-demo-mode": "true", ...headers });
       res.end(JSON.stringify(body));
     };
@@ -107,10 +140,118 @@ export function startDemoServer(opts: { port?: number; dataDir: string }): Promi
         respond(200, { demo: true, notice: DEMO_NOTICE, contract, markdown: toMarkdown(contract) });
         return;
       }
+      const sessionMatch = /^\/api\/session\/([^/]+)(?:\/(events|approve))?$/.exec(url.pathname);
+      if (sessionMatch !== null) {
+        const sessionId = sessionMatch[1] ?? "";
+        const action = sessionMatch[2] as "events" | "approve" | undefined;
+        const session = sessions.get(sessionId);
+        if (session === undefined) {
+          respond(404, { error: "unknown session" });
+          return;
+        }
+        if (req.method === "GET" && action === "events") {
+          await streamEvents(req, res, session, url);
+          return;
+        }
+        if (req.method === "GET" && action === undefined) {
+          respond(200, {
+            demo: true,
+            sessionId,
+            state: session.agent.currentState(),
+            pendingApproval: session.agent.pendingApproval() !== null,
+            events: session.journal.readAll().length,
+          });
+          return;
+        }
+        if (req.method === "POST" && action === "approve") {
+          const body = await readJson(req);
+          const parsed = z.object({ approve: z.boolean() }).safeParse(body);
+          if (!parsed.success) {
+            respond(400, { error: "invalid approve payload" });
+            return;
+          }
+          const approval = session.agent.pendingApproval();
+          if (approval === null || approval.status !== "pending") {
+            respond(409, { error: "no pending approval on this session" });
+            return;
+          }
+          const outcome = await session.agent.decide(
+            parsed.data.approve,
+            `git push origin ${demoBranchFor(session.candidate)}`,
+            { repository: session.candidate.repoFullName, branch: demoBranchFor(session.candidate), force: false },
+          );
+          if (!outcome.ok) {
+            respond(409, { error: `approval rejected: ${outcome.reason}` });
+            return;
+          }
+          respond(200, { demo: true, sessionId, decision: parsed.data.approve ? "granted" : "denied" });
+          return;
+        }
+      }
+      if (req.method === "POST" && url.pathname === "/api/demo/reset") {
+        swipeStore.replaceAll([]);
+        graph = seedFromLanguages(emptyGraph(), demoLanguageSeed());
+        respond(200, { demo: true, notice: DEMO_NOTICE, reset: true });
+        return;
+      }
+      if (req.method === "POST" && url.pathname === "/api/session") {
+        const body = await readJson(req);
+        const parsed = z.object({ key: z.string().min(1) }).safeParse(body);
+        if (!parsed.success) {
+          respond(400, { error: "invalid session payload" });
+          return;
+        }
+        const candidate = candidateByKey.get(parsed.data.key);
+        if (candidate === undefined) {
+          respond(404, { error: "unknown candidate key" });
+          return;
+        }
+        respond(200, { demo: true, notice: DEMO_NOTICE, ...startSession(candidate) });
+        return;
+      }
       respond(404, { error: "not found" });
       return;
     }
     respond(404, { error: "not found" });
+  }
+
+  async function streamEvents(
+    _req: import("node:http").IncomingMessage,
+    res: import("node:http").ServerResponse,
+    session: { agent: MockAgentSession; journal: SessionJournal },
+    url: URL,
+  ): Promise<void> {
+    const from = Number.parseInt(url.searchParams.get("from") ?? "0", 10);
+    let cursor = Number.isNaN(from) ? 0 : from;
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "x-demo-mode": "true",
+    });
+    const send = (envelope: unknown): void => {
+      res.write(`data: ${JSON.stringify(envelope)}\n\n`);
+    };
+    for (const envelope of session.journal.readFrom(cursor)) {
+      send(envelope);
+      cursor = envelope.sequence;
+    }
+    await new Promise<void>((resolve) => {
+      const poll = (): void => {
+        for (const envelope of session.journal.readFrom(cursor)) {
+          send(envelope);
+          cursor = envelope.sequence;
+        }
+        const state = session.agent.currentState();
+        if (state === "COMPLETED" || state === "PAUSED" || state === "FAILED" || state === "CANCELLED") {
+          res.write("event: done\ndata: {}\n\n");
+          resolve();
+          return;
+        }
+        setTimeout(poll, 120);
+      };
+      poll();
+    });
+    res.end();
   }
 
   return new Promise<DemoServerHandle>((resolve, reject) => {

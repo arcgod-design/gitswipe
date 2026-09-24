@@ -1,6 +1,8 @@
 # WEEK-06 — AgentGateway: OpenCode adapter, mock agent, sessions, worktrees, PR lifecycle
 
 > Exit test: a mock-agent session runs the full lifecycle E2E (start → events → files changed → tests → approval request → complete) against a scratch repo; a real OpenCode session does the same live; every session maps through JarvisSession with its own worktree; PR lifecycle follow-ups queue correctly (fix-on-branch, rebase-on-conflict, bot-review resolution, maintainer-blocked).
+>
+> **Design inputs locked by ADR 0008** (user-directed evaluation of munder-difflin vs Hermes plugin vs own design): our AgentGateway stays (OpenCode HTTP/SSE → ACP → CLI fallback). Adopted from munder-difflin: (1) **dual-plane separation** — structured event journal stays strictly separate from a raw terminal plane (real byte stream for the Terminal tab, not events pretending to be a terminal); (2) **takeover via attachable session** — on unix the daemon spawns each agent session in a tmux pane (supervise via API, take over by attaching); on Windows, takeover rides OpenCode's session-continue path.
 
 ## Scope
 

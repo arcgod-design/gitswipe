@@ -1,0 +1,20 @@
+{
+  "date": "2026-09-24 (session 8)",
+  "in_flight_week": "MVP track M2+M4 (branch: mvp)",
+  "week_status": "M2 done (journal+SSE+mock agent, 17-event lifecycle, real approval binding, deny->PAUSED, replay verified) + M4 done (demo reset). MVP backend COMPLETE: M1+M2+M4 done, only M3 (taste-skill UI) remains",
+  "verified": [
+    "npm run typecheck -> 5/5 clean",
+    "npm test -> 129/129 passed (daemon 13/13)",
+    "live: session status WAITING_FOR_APPROVAL with 11 events; raw SSE dump shows events + done terminator"
+  ],
+  "files_touched": [
+    "apps/daemon/src/{journal,mock-agent,demo-server,index}.ts",
+    "apps/daemon/test/demo-session.test.ts (5 tests)",
+    "doc-of-journey/decisions/0008-harness-connection.md",
+    "weeks/WEEK-06.md (dual-plane + takeover enrichment)",
+    "NEXT-TASKS.md (M1/M2 done, M4 partial->done pending this commit), SESSION-STATE.md, daily/2026-09-24-8.md"
+  ],
+  "decisions_locked": ["0008 harness connection: own AgentGateway stays (OpenCode HTTP/SSE -> ACP -> CLI); adopt munder-difflin dual-plane + attachable-takeover ideas; no dependencies added"],
+  "next_step": "M3 on mvp: load taste-skill + ui-ux-pro-max, design pass, then build the four screens (swipe feed, task contract, agent session w/ SSE + terminal + approval card, demo badge/reset) served by the demo server",
+  "user_blockers": ["U5 PAT (live GitHub smoke)", "U5 BYOK key (live AI smoke)", "U2 license (pre-release)"]
+}

@@ -78,10 +78,10 @@
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| M1 | Minimal daemon serve: loopback HTTP + loopback token + feed/swipe/contract API over the real engines | TODO | pulls WEEK-05 E3/E5 forward |
-| M2 | Event journal + SSE with replay + deterministic mock agent (contract §202 script) | TODO | pulls E4 + WEEK-06 mock |
+| M1 | Minimal daemon serve: loopback HTTP + loopback token + feed/swipe/contract API over the real engines | ✅ DONE (2026-09-24) | 8 integration tests + live verification |
+| M2 | Event journal + SSE with replay + deterministic mock agent (contract §202 script) | ✅ DONE (2026-09-24) | full 17-event lifecycle incl. preflight + approval gate with real action-hash binding; deny → PAUSED; replay-from-cursor verified |
 | M3 | **Taste-skill + ui-ux-pro-max design pass** → swipe feed + contract view + session screen + approval card | TODO | mandatory per PROJECT-CORE #15/#23; no UI code before the pass |
-| M4 | Demo data fixtures + DEMO badge + demo-reset; isolation from real creds (§201) | TODO | |
+| M4 | Demo data fixtures + DEMO badge + demo-reset; isolation from real creds (§201) | PARTIAL | fixtures + badge + isolation live since M1; demo-reset endpoint remains |
 
 ## Standing items (user-side)
 
