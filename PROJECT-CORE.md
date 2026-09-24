@@ -32,6 +32,7 @@ Not "an AI chatbot for GitHub". The core loop (contract §214): DISCOVER → UND
 | 20 | **Public product name = GitSwipe.** "Jarvis" remains internal codename (`@jarvis/*` packages, `jarvis-workstation` protocol id, protocol types) — renaming them is churn + wire breakage; new ADR required to ever change | ADR 0005, user decision | 2026-09-24 |
 | 21 | Contribution workspace root = **user-provided** (designated at workstation setup, WEEK-06 config); GitSwipe never defaults into an existing personal folder like ssoc | ADR 0005, user decision | 2026-09-24 |
 | 22 | **Branch model (ADR 0007)**: `dev` = all development (WEEK ladder); `main` = verified merges only, tagged `vX.Y.Z`; `mvp` = pitch/demo slice. Baseline tag `v0.1.0` = WEEK-00..04 | User directive | 2026-09-24 |
+| 23 | **MVP slice = full demo loop** (discover → swipe → task contract → mock-agent session → approval) on localhost, real engines + labeled fixture data, deterministic mock agent (contract §202). Built **in parallel** with the dev ladder, pulling WEEK-05 pieces forward as needed. UI on mvp gets the mandatory taste-skill + ui-ux-pro-max pass. Demo mode obvious + isolated per contract §201 | User decision | 2026-09-24 |
 
 ## Verified facts (toolchain, this machine)
 

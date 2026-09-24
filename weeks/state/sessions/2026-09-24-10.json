@@ -1,0 +1,19 @@
+{
+  "date": "2026-09-24 (session 10)",
+  "in_flight_week": "WEEK-05",
+  "week_status": "done (exit test green: cross-process pair via code; journal replays from cursor + survives restart; queue durable; loopback default + origin lock; 129/129 tests on dev + live CLI+serve verification)",
+  "verified": [
+    "npm run typecheck -> clean",
+    "npm test -> 129/129 on dev (13 workstation tests)",
+    "live: jarvisd pair (process A) + serve (process B) + POST /api/pair -> token -> authed workstation report; code replay -> 401"
+  ],
+  "files_touched": [
+    "apps/daemon/src/workstation/{config,identity,pairing,journal,queue,health,server}.ts",
+    "apps/daemon/src/index.ts (serve real, pair, devices commands)",
+    "apps/daemon/test/workstation/{core,server}.test.ts",
+    "weeks/WEEK-05.md status, NEXT-TASKS E1-E6, PROJECT_STATUS rows, SESSION-STATE.md, daily/2026-09-24-10.md"
+  ],
+  "decisions_locked": [],
+  "next_step": "Milestone merge dev->main + tag v0.2.0 per ADR 0007 (exit test green + full suite green). Then WEEK-06: AgentGateway (OpenCode adapter HTTP/SSE->ACP->CLI, mock agent from mvp, session machine wiring, worktrees, PR lifecycle, checkpoints)",
+  "user_blockers": ["U5 PAT (live GitHub smoke)", "U5 BYOK key (live AI smoke)", "U2 license (pre-release)"]
+}

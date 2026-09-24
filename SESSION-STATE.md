@@ -1,40 +1,32 @@
-# SESSION-STATE.md — as of 2026-09-24 (WEEK-04 complete)
+# SESSION-STATE.md — as of 2026-09-24 (WEEK-05 complete on dev)
 
 ## Current week
 
-**WEEK-04** — ✅ **DONE (deterministic machinery).** Dedup classifier v0 (exact + lexical + metadata, never one signal), finding pipeline (evidence assembly → confidence gate 0.55 → duplicate trail on every FindingRecord; weak evidence labeled hypothesis; below-gate rejected with reason), analysis prompts (untrusted-content rule in every system prompt, fenced-JSON structured-output parser), reference mode (explicit reasons only), project radar (project candidates, TODO/FIXME scanner, repo-scoped dependabot advisories with source links). Live provider-analysis loop = daemon weeks (WEEK-05+).
+**WEEK-05** — ✅ **DONE.** The workstation daemon is real: config precedence with loopback default, durable ed25519 identity (corruption detected), disk-backed single-use pairing codes shared across processes (CLI pair + running serve), revocable device registry (tokens hashed; CLI revoke kills live tokens), global-sequence event journal with cursor replay + restart recovery, durable task queue, health report, origin-locked authed localhost API with global SSE tail. Live-verified end-to-end with separate processes.
 
 ## Stack state
 
-- Node 22.14, TS 5.9, zod 3.25, vitest 5.0.1, tsx 4.20. npm audit: 0 vulns.
-- 116 tests / 13 files (~2.2s): protocol 20 + policy 22 + providers 33 + github 13 + discovery 28.
-- Packages: `@jarvis/protocol`, `@jarvis/policy`, `@jarvis/providers`, `@jarvis/github`, `@jarvis/discovery`, `@jarvis/daemon`.
-- ADRs 0001–0006. All WEEK-00..04 scope shipped; WEEK-05 (daemon v1) is next.
+- Branch: `dev` (mvp carries the demo UI + web app; merges per ADR 0007).
+- 129/129 tests on dev (13 workstation), typecheck clean, audit 0.
+- 8 packages: protocol, policy, providers, github, discovery + daemon (+ web on mvp).
+- ADRs 0001–0008. Weeks 00–05 done; MVP track done on mvp.
 
 ## Verified this session (exact commands, real outputs)
 
-- `npm run typecheck` → 5/5 workspaces clean
-- `npm test` → 116/116 passed
-- `npm audit` → 0 vulnerabilities
+- `npm run typecheck` → clean
+- `npm test` → 129/129 on dev
+- Live: `serve` banner (dev_8935… identity, 0 events recovered) → `jarvisd pair` printed `V8P9-FV2M` → POST /api/pair from client → token → authed report (bind loopback, journal 1, git 2.54, disk 217GB, devices 1) → code replay → **401**.
 
 ## Known pain points
 
-- Test fixtures inheriting `language` from spread-base caused false reference matches — watch fixture spreads.
-- Ranker ties: seed dominant weights; never assert tie-break order.
-- Recurring machine hazards: OneDrive churn, PS 5.1 UTF-8 regex, vitest 3→5 only.
+- Cross-process state (pairing codes, device registry) must be RE-READ from disk on every mutation/read — in-memory caching caused the CLI/serve blindness bug class. Rule recorded in errors.md-style lessons (daily log).
+- OneDrive churn / PS 5.1 UTF-8 regex hazard / vitest 3→5 only (standing).
 
 ## Next concrete steps
 
-1. **WEEK-05** (the big one): daemon becomes a real process — config precedence (§116), device identity + 10-min pairing codes → key exchange (§23), loopback+LAN TransportProvider + `jarvis-workstation/1.0` handshake (§24/§107), append-only JSONL event journal with replay-from-cursor (§120/§121), authenticated localhost API (§148), health + heartbeats (§88/§195), durable task queue (§111/§112). Read `weeks/WEEK-05.md`.
-2. User whenever ready: PAT (`jarvisd secret set github:token`) + BYOK key → live smokes.
+1. **Milestone merge per ADR 0007**: dev → main (`--no-ff`), tag **v0.2.0**, push (WEEK-05 exit green + full suite green).
+2. **WEEK-06** next session: AgentGateway — OpenCode adapter (HTTP/SSE → ACP → CLI fallback, per contract §18 + ADR 0008 dual-plane/tmux-takeover), mock agent absorbed from mvp, session state machine wired to the real journal, worktrees per REPO-WORK-CONVENTIONS, PR lifecycle loop, checkpoints.
 
 ## Docs health
 
-All current; daily log `2026-09-24-5.md`; state JSON `2026-09-24-5.json`.
-
-## Branch model (ADR 0007 — live as of session 6, same day)
-
-- `dev` = current branch + all future ladder work (session pushes target dev)
-- `main` = verified merges only; baseline release tagged **v0.1.0** (WEEK-00..04)
-- `mvp` = pitch/demo slice (branched from dev; demo shortcuts labeled per contract §201)
-- Next merge to main = next verified milestone (WEEK-05 exit test green)
+All current; daily `2026-09-24-10.md`; state `2026-09-24-10.json`; MVP-PLAN/NEXT-TASKS/PROJECT_STATUS updated.

@@ -11,9 +11,8 @@
 | WEEK-02 | GitHub auth + ingestion | ✅ DONE (2026-09-24; live smoke pending user token) |
 | WEEK-03 | Discovery feed + swipes + skill graph v0 | ✅ DONE (2026-09-24) |
 | WEEK-04 | AI opportunity engine + reference mode + radar | ✅ DONE (2026-09-24) |
-| WEEK-05 | Workstation daemon v1 (identity/pairing/transport/journal) | NEXT — current |
-| WEEK-05 | Workstation daemon v1 (identity/pairing/transport/journal) | PENDING |
-| WEEK-06 | AgentGateway + OpenCode adapter + worktrees + PR lifecycle | PENDING |
+| WEEK-05 | Workstation daemon v1 (identity/pairing/transport/journal) | ✅ DONE (2026-09-24; 129/129 dev tests + live cross-process pair verification) |
+| WEEK-06 | AgentGateway + OpenCode adapter + worktrees + PR lifecycle | NEXT — current |
 | WEEK-07 | Security integration (policy on exec path, broker, approvals, audit) | PENDING |
 | WEEK-08 | Web UI (taste-skill pass) + Puter optional auth | PENDING |
 | WEEK-09 | Android (Capacitor, notifications, offline, APK) | PENDING |
@@ -64,7 +63,7 @@
 | D5 | Reference mode: separate WORK vs REFERENCE feeds, explicit relevance reasons (§12, §169) | ✅ DONE | no-reason refs filtered entirely |
 | D6 | Project radar foundations: registered projects, radar item types (§13) | ✅ DONE | project candidates + TODO scanner + repo-scoped dependabot advisories (source links, never invented) |
 
-## WEEK-05 task list (current)
+## WEEK-05 task list (dev ladder — the mvp branch pulls E3/E4/E5 forward in minimal form per docs/MVP-PLAN.md, in parallel)
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
@@ -74,6 +73,15 @@
 | E4 | Event journal: append-only JSONL, monotonic sequence, replay-from-cursor + snapshot-on-gap (§120/§121) | TODO | protocol envelope from WEEK-00 |
 | E5 | Localhost API: authenticated loopback session token, CORS/origin locked (§148/§149) | TODO | |
 | E6 | Health report + heartbeats (§88/§195) + task queue durability (§111/§112) | TODO | |
+
+## MVP track (parallel — branch `mvp`, plan in docs/MVP-PLAN.md, locked PROJECT-CORE #23)
+
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| M1 | Minimal daemon serve: loopback HTTP + loopback token + feed/swipe/contract API over the real engines | TODO | pulls WEEK-05 E3/E5 forward |
+| M2 | Event journal + SSE with replay + deterministic mock agent (contract §202 script) | TODO | pulls E4 + WEEK-06 mock |
+| M3 | **Taste-skill + ui-ux-pro-max design pass** → swipe feed + contract view + session screen + approval card | TODO | mandatory per PROJECT-CORE #15/#23; no UI code before the pass |
+| M4 | Demo data fixtures + DEMO badge + demo-reset; isolation from real creds (§201) | TODO | |
 
 ## Standing items (user-side)
 

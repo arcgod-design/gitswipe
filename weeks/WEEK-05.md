@@ -1,6 +1,8 @@
 # WEEK-05 — Workstation daemon v1: identity, pairing, transport, journal, health
 
 > Exit test: a browser/phone pairs via short-lived code; events replay after reconnect; the JSONL journal survives a daemon restart; loopback is the default bind and no port is exposed beyond loopback/LAN by default.
+>
+> **STATUS: ✅ DONE 2026-09-24** — cross-process pairing (CLI `jarvisd pair` + `serve` share disk-backed codes), single-use/expiring codes, hashed-at-rest device tokens, revocation kills live tokens, global journal replays from cursor and survives restarts, durable queue, loopback default + origin lock, health report. 13 workstation tests + live CLI/serve verification.
 
 ## Scope
 
