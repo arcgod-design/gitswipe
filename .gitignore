@@ -1,5 +1,6 @@
 node_modules/
 dist/
+apps/daemon/public/
 coverage/
 .vitest/
 *.log
