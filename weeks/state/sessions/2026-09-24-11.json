@@ -1,0 +1,18 @@
+{
+  "date": "2026-09-24 (session 11)",
+  "in_flight_week": "WEEK-06",
+  "week_status": "deterministic core done (142/142; agents package complete incl. user-research conventions: opencode run --dir/--title dispatch + unified-DB takeover). Live OpenCode path PROTO (blocked: no opencode CLI here, no BYOK key). Week stays PARTIAL until live session runs - no v0.3.0 merge yet",
+  "verified": [
+    "npm run typecheck -> clean",
+    "npm test -> 142/142 (13 new agents tests)"
+  ],
+  "files_touched": [
+    "packages/agents/* (adapter, mock-adapter, opencode, gateway, worktree, checkpoint, index + test/agents.test.ts)",
+    "doc-of-journey/decisions/0008-harness-connection.md (extracted from mvp + research addendum)",
+    "doc-of-journey/topics/errors.md (twice-escaped violation lesson)",
+    "SESSION-STATE.md"
+  ],
+  "decisions_locked": [],
+  "next_step": "Either WEEK-06 live tail (needs opencode machine + BYOK key) or WEEK-07 (security integration - fully testable now): policy engine on the exec path, credential broker, approval replay protection, audit journal, redaction",
+  "user_blockers": ["U5 BYOK key (live AI/OpenCode smoke)", "U5 PAT (live GitHub smoke)", "U2 license (pre-release)"]
+}
