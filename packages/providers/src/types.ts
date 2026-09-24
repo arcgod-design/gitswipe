@@ -53,6 +53,17 @@ export interface StructuredRequest<T> {
   parse: (raw: string) => T;
 }
 
+export interface EmbeddingRequest {
+  model: string;
+  input: string | string[];
+  signal?: AbortSignal;
+}
+
+export interface EmbeddingResponse {
+  model: string;
+  embeddings: number[][];
+}
+
 export interface AIProvider {
   readonly id: string;
   readonly displayName: string;
@@ -62,4 +73,5 @@ export interface AIProvider {
   chat(req: ChatRequest): Promise<ChatResponse>;
   stream(req: ChatRequest): AsyncIterable<ChatEvent>;
   structuredOutput<T>(req: ChatRequest, structured: StructuredRequest<T>): Promise<T>;
+  embeddings?(req: EmbeddingRequest): Promise<EmbeddingResponse>;
 }

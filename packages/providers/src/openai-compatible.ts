@@ -3,12 +3,14 @@ import type {
   ChatEvent,
   ChatRequest,
   ChatResponse,
+  EmbeddingRequest,
+  EmbeddingResponse,
   HealthStatus,
   ModelInfo,
   ProviderCapabilities,
   StructuredRequest,
 } from "./types.js";
-import { expectOk, ProviderError, withTimeout } from "./provider-error.js";
+import { expectOk, fetchOrThrow, ProviderError, withTimeout } from "./provider-error.js";
 
 export interface OpenAICompatibleOptions {
   id: string;
@@ -55,14 +57,18 @@ export class OpenAICompatibleProvider implements AIProvider {
   }
 
   capabilities(): ProviderCapabilities {
-    return { chat: true, streaming: true, structuredOutput: true, toolCalling: true, embeddings: false };
+    return { chat: true, streaming: true, structuredOutput: true, toolCalling: true, embeddings: true };
   }
 
   async listModels(): Promise<ModelInfo[]> {
-    const res = await this.doFetch(`${this.baseUrl}/models`, {
-      headers: this.authHeaders(),
-      signal: withTimeout(undefined, 15_000),
-    });
+    const res = await fetchOrThrow(
+      () =>
+        this.doFetch(`${this.baseUrl}/models`, {
+          headers: this.authHeaders(),
+          signal: withTimeout(undefined, 15_000),
+        }),
+      this.id,
+    );
     await expectOk(res, `${this.id}: listModels`);
     const body = (await res.json()) as { data?: Array<{ id: string }> };
     return (body.data ?? []).map((m) => ({ id: m.id }));
@@ -125,10 +131,29 @@ export class OpenAICompatibleProvider implements AIProvider {
   }
 
   async structuredOutput<T>(req: ChatRequest, structured: StructuredRequest<T>): Promise<T> {
+    const raw = await this.structuredAttempt(req, structured, false);
+    try {
+      return structured.parse(raw);
+    } catch {
+      const retry = await this.structuredAttempt(req, structured, true);
+      try {
+        return structured.parse(retry);
+      } catch {
+        throw new ProviderError("PROVIDER_FAILURE", `${this.id}: structured output failed schema validation after retry`);
+      }
+    }
+  }
+
+  private async structuredAttempt(req: ChatRequest, structured: StructuredRequest<unknown>, strict: boolean): Promise<string> {
     const res = await this.post(
       {
         model: req.model,
-        messages: req.messages,
+        messages: strict
+          ? [
+              ...req.messages,
+              { role: "system", content: `Output ONLY a valid JSON value matching: ${JSON.stringify(structured.schemaJson)}. No markdown fences, no prose.` },
+            ]
+          : req.messages,
         max_tokens: req.maxTokens,
         temperature: req.temperature,
         stream: false,
@@ -139,12 +164,27 @@ export class OpenAICompatibleProvider implements AIProvider {
     );
     await expectOk(res, `${this.id}: structuredOutput`);
     const parsed = (await res.json()) as OpenAIChatBody;
-    const raw = parsed.choices?.[0]?.message?.content ?? "";
-    try {
-      return structured.parse(raw);
-    } catch {
-      throw new ProviderError("PROVIDER_FAILURE", `${this.id}: structured output failed schema validation`);
-    }
+    return parsed.choices?.[0]?.message?.content ?? "";
+  }
+
+  async embeddings(req: EmbeddingRequest): Promise<EmbeddingResponse> {
+    const res = await fetchOrThrow(
+      () =>
+        this.doFetch(`${this.baseUrl}/embeddings`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...this.authHeaders() },
+          body: JSON.stringify({ model: req.model, input: req.input }),
+          signal: withTimeout(req.signal, 30_000),
+        }),
+      this.id,
+    );
+    await expectOk(res, `${this.id}: embeddings`);
+    const body = (await res.json()) as { model?: string; data?: Array<{ index?: number; embedding?: number[] }> };
+    const sorted = (body.data ?? [])
+      .slice()
+      .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
+      .map((d) => d.embedding ?? []);
+    return { model: body.model ?? req.model, embeddings: sorted };
   }
 
   private authHeaders(): Record<string, string> {
@@ -156,12 +196,16 @@ export class OpenAICompatibleProvider implements AIProvider {
     signal: AbortSignal | undefined,
     longRunning: boolean,
   ): Promise<Response> {
-    return this.doFetch(`${this.baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...this.authHeaders() },
-      body: JSON.stringify(body),
-      signal: withTimeout(signal, longRunning ? this.timeoutMs : 30_000),
-    });
+    return fetchOrThrow(
+      () =>
+        this.doFetch(`${this.baseUrl}/chat/completions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...this.authHeaders() },
+          body: JSON.stringify(body),
+          signal: withTimeout(signal, longRunning ? this.timeoutMs : Math.min(this.timeoutMs, 30_000)),
+        }),
+      this.id,
+    );
   }
 }
 
@@ -184,7 +228,12 @@ export async function* parseSse<T extends ChatEvent>(
       if (!line.startsWith("data:")) continue;
       const payload = line.slice(5).trim();
       if (payload === "[DONE]") return;
-      const event = mapPayload(payload);
+      let event: T | null;
+      try {
+        event = mapPayload(payload);
+      } catch {
+        continue;
+      }
       if (event) yield event;
     }
   }

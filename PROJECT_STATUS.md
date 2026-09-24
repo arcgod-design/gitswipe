@@ -10,17 +10,24 @@
 |---|---|---|
 | Domain contracts: event envelope, session/task state machines, task contract + markdown render, opportunity/swipe model, approval + action hashing, workstation handshake | `packages/protocol` | vitest: `npm test` |
 | Deterministic policy engine: rule evaluation, command classification (git/read/build/network), path sandbox checks (traversal, blocked paths, windows drives) + default safe ruleset (contract §26) | `packages/policy` | vitest: table-driven tests (contract §118) |
-| AI provider abstraction: OpenAI-compatible chat/stream/listModels/healthCheck (OpenAI, OpenRouter, Ollama, Gemini-compat), Anthropic chat/stream, registry presets, model routing, retry/rate-limit/error categories | `packages/providers` | vitest against local mock HTTP servers (no live keys used or needed) |
-| Daemon CLI: `npm run daemon -- --version` / `--check` (toolchain preflight) | `apps/daemon` | manual run 2026-09-24 |
-| Monorepo toolchain: npm workspaces, TS strict, vitest, CI workflow | root + `.github/workflows/ci.yml` | `npm run typecheck` + `npm test` green |
+| AI provider abstraction: OpenAI-compatible chat/stream/listModels/healthCheck/embeddings (OpenAI, OpenRouter, Ollama, Gemini-compat), Anthropic chat/stream, registry presets, retry/rate-limit/typed error categories | `packages/providers` | vitest against local mock HTTP servers (no live keys used or needed) |
+| BYOK secret store: `SecretStore` interface + Windows DPAPI file store (user-scoped; live round-trip proves plaintext never touches disk) + key resolution os-store > env(dev-flagged) > none | `packages/providers/src/secret-store.ts`, `key-resolver.ts` | vitest (live DPAPI, win32) + manual daemon round-trip |
+| Structured-output retry (one stricter retry, contract §142) + capability negotiation (embeddings enforced at the router) | `packages/providers` | vitest |
+| ModelRouter: 5 route keys, user overrides, authorized chains — primary first, only user-listed failovers, unauthorized primary rejected | `packages/providers/src/router.ts` | vitest |
+| Authorized-only failover: RATE_LIMITED/PROVIDER_FAILURE/TIMEOUT/NETWORK_FAILURE fail over within the user chain; AUTH_FAILURE never fails over (bad keys surface); aggregate error lists every attempt | `packages/providers/src/failover.ts` | vitest |
+| Typed transport errors: hanging endpoint → `[TIMEOUT]`, refused → `[NETWORK_FAILURE]`; malformed SSE lines skipped without killing the stream | `packages/providers` | vitest |
+| Daemon CLI: `version` / `check` (preflight) / `health` (provider health — honest FAIL + exit 1) / `secret set|get|list|delete` (DPAPI-backed, masked display) | `apps/daemon` | manual runs 2026-09-24 |
+| Monorepo toolchain: npm workspaces, TS strict, vitest 5, CI workflow | root + `.github/workflows/ci.yml` | `npm run typecheck` + `npm test` green (75/75) |
 | Session-resume documentation system (this file + SESSION-STATE + weeks + doc-of-journey) | repo root | n/a — process, verified by use |
 
 ## PROTO
 
 | Capability | Where | Why not WORKING yet |
 |---|---|---|
+| macOS Keychain + Linux libsecret secret stores | `packages/providers/src/secret-store.ts` | Code is real but untestable on this Windows machine; first darwin/linux use must be verified live. (Windows DPAPI store IS WORKING.) |
 | Puter client-side AIProvider bridge (injected puter object, chat only) | `packages/providers/src/puter.ts` | Needs the browser puter.js runtime; wired and tested in WEEK-08. Never a daemon-side dependency. |
-| Daemon as a long-running process (identity, pairing, transport, journal) | `apps/daemon` | Skeleton only — WEEK-05 builds it. `--serve` explicitly reports not-implemented. |
+| Daemon as a long-running process (identity, pairing, transport, journal) | `apps/daemon` | Skeleton only — WEEK-05 builds it. `serve` explicitly reports not-implemented. |
+| Live provider smoke against real APIs (OpenAI/Ollama/etc.) | — | Needs BYOK key in `.env` or OS store (USER-THING-TO-DO #5). All current tests use local mock servers by design. |
 
 ## ROADMAP (scheduled, contract sections in parens)
 

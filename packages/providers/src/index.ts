@@ -5,3 +5,7 @@ export * from "./anthropic.js";
 export * from "./puter.js";
 export * from "./registry.js";
 export * from "./routing.js";
+export * from "./router.js";
+export * from "./failover.js";
+export * from "./secret-store.js";
+export * from "./key-resolver.js";

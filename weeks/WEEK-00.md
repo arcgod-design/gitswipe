@@ -15,8 +15,8 @@
 
 ## Rolling handoff (update every session)
 
-- **Date**: 2026-09-24
-- **In-flight week**: WEEK-00 — ✅ DONE (exit test passed: typecheck 4/4 workspaces, 54/54 tests, daemon version+check run, audit 0 vulns). NEXT: WEEK-01.
-- **Stack state**: see `SESSION-STATE.md` (as of 2026-09-24) — everything verified there.
-- **Next concrete step**: start WEEK-01 per `weeks/WEEK-01.md` — provider completeness (structuredOutput/embeddings + capability negotiation), SecretStore (Windows Credential Manager first), routing API, daemon health command.
-- **Blockers**: none for WEEK-01 start; user items in `USER-THING-TO-DO.md` (product name, license, GitHub creds, BYOK keys).
+- **Date**: 2026-09-24 (session 2)
+- **In-flight week**: WEEK-01 — ✅ DONE (75/75 tests; DPAPI secret store live-verified; router + authorized failover; daemon health/secret commands). NEXT: WEEK-02.
+- **Stack state**: see `SESSION-STATE.md` (as of 2026-09-24).
+- **Next concrete step**: start WEEK-02 per `weeks/WEEK-02.md` — GitHub auth decision (ADR 0006), REST client with pagination/ETag/backoff, normalized entities, fixtures, checkIssueState.
+- **Blockers**: user items in `USER-THING-TO-DO.md` (#3 GitHub creds for live smoke; #5 BYOK key).

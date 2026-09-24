@@ -1,9 +1,29 @@
 import { execFile } from "node:child_process";
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
 import { promisify } from "node:util";
+import type { AIProvider } from "@jarvis/providers";
+import {
+  createProvider,
+  createSecretStore,
+  maskKey,
+  resolveApiKey,
+  type SecretStore,
+} from "@jarvis/providers";
 
 const execFileAsync = promisify(execFile);
 
 const VERSION = "0.1.0";
+
+function dataDir(): string {
+  const dir = process.env.JARVIS_DATA_DIR ?? "./data";
+  mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+function secretStore(): SecretStore {
+  return createSecretStore({ dataDir: join(dataDir(), "secrets") });
+}
 
 async function preflightLite(): Promise<void> {
   const failures: string[] = [];
@@ -33,10 +53,83 @@ async function preflightLite(): Promise<void> {
   process.stdout.write("preflight: OK\n");
 }
 
+async function healthCommand(): Promise<void> {
+  const store = secretStore();
+  const configured = (process.env.JARVIS_PROVIDERS ?? "ollama")
+    .split(",")
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+  const providers: AIProvider[] = [];
+  for (const id of configured) {
+    const key = await resolveApiKey(id, store);
+    if (key.source === "env-dev") {
+      process.stderr.write(`note: ${id} key from env (.env) — dev mode; move it into the OS store via 'jarvisd secret set provider:${id}'\n`);
+    }
+    try {
+      providers.push(createProvider({ providerId: id, apiKey: key.key }));
+    } catch (err) {
+      process.stderr.write(`${id}: skipped (${err instanceof Error ? err.message : String(err)})\n`);
+    }
+  }
+  let failed = 0;
+  for (const provider of providers) {
+    const status = await provider.healthCheck();
+    const line = `${provider.id.padEnd(12)} ${status.ok ? "OK " : "FAIL"} ${status.detail}${status.latencyMs !== undefined ? ` (${status.latencyMs}ms)` : ""}\n`;
+    process.stdout.write(line);
+    if (!status.ok) failed += 1;
+  }
+  if (providers.length === 0) {
+    process.stderr.write("no providers configured (set JARVIS_PROVIDERS=comma,list)\n");
+    process.exit(1);
+  }
+  process.exit(failed > 0 ? 1 : 0);
+}
+
+async function readStdinLine(): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of process.stdin) {
+    chunks.push(Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks).toString("utf-8").replace(/\r?\n$/, "");
+}
+
+async function secretCommand(args: string[]): Promise<void> {
+  const [sub, key] = args;
+  const store = secretStore();
+  if (sub === "set" && key) {
+    const value = await readStdinLine();
+    if (value.length === 0) {
+      process.stderr.write("no value provided on stdin\n");
+      process.exit(1);
+    }
+    await store.set(key, value);
+    process.stdout.write(`stored: ${key} (${store.kind})\n`);
+    return;
+  }
+  if (sub === "get" && key) {
+    const value = await store.get(key);
+    process.stdout.write(value === null ? "not found\n" : `${maskKey(value)} (${store.kind})\n`);
+    return;
+  }
+  if (sub === "delete" && key) {
+    await store.delete(key);
+    process.stdout.write(`deleted: ${key}\n`);
+    return;
+  }
+  if (sub === "list") {
+    for (const k of await store.list()) process.stdout.write(`${k}\n`);
+    return;
+  }
+  process.stderr.write(
+    ["usage:", "  jarvisd secret set <key>     (value on stdin)", "  jarvisd secret get <key>     (masked)", "  jarvisd secret delete <key>", "  jarvisd secret list", ""].join("\n"),
+  );
+  process.exit(1);
+}
+
 function serve(): never {
   process.stderr.write(
     "jarvisd: long-running workstation service ships in WEEK-05 (weeks/WEEK-05.md). " +
-      "Nothing is listening; refusing to pretend. Use --check or --version.\n",
+      "Nothing is listening; refusing to pretend. Use 'check', 'health', or 'secret'.\n",
   );
   process.exit(2);
 }
@@ -49,17 +142,25 @@ switch (arg) {
   case "check":
     await preflightLite();
     break;
+  case "health":
+    await healthCommand();
+    break;
+  case "secret":
+    await secretCommand(process.argv.slice(3));
+    break;
   case "serve":
     serve();
     break;
   default:
     process.stdout.write(
       [
-        `jarvisd ${VERSION} — Jarvis workstation entrypoint`,
+        `jarvisd ${VERSION} — GitSwipe workstation entrypoint`,
         "",
-        "  jarvisd version   print version",
-        "  jarvisd check     toolchain preflight-lite",
-        "  jarvisd serve     start the workstation service (WEEK-05)",
+        "  jarvisd version        print version",
+        "  jarvisd check          toolchain preflight-lite",
+        "  jarvisd health         provider health (JARVIS_PROVIDERS=comma,list)",
+        "  jarvisd secret <cmd>   BYOK key store (OS credential store)",
+        "  jarvisd serve          start the workstation service (WEEK-05)",
         "",
       ].join("\n"),
     );

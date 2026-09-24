@@ -1,0 +1,21 @@
+{
+  "date": "2026-09-24 (session 2)",
+  "in_flight_week": "WEEK-01",
+  "week_status": "done (exit test passed: 75/75 tests incl. timeout/429/auth-failure/malformed-stream; DPAPI live round-trip, plaintext never on disk; routing + authorized-only failover verified)",
+  "verified": [
+    "npm run typecheck -> 4/4 workspaces clean",
+    "npm test -> 75/75 passed (10 files)",
+    "npm audit -> 0 vulnerabilities",
+    "npm run daemon -- secret set/get/list/delete provider:openai -> stored sk-t...7890 (dpapi-file), masked, listed, deleted",
+    "npm run daemon -- health -> ollama FAIL fetch failed, exit 1; JARVIS_PROVIDERS=openai,ollama -> openai FAIL HTTP 401 (correct, no key)"
+  ],
+  "files_touched": [
+    "packages/providers/src/{types,openai-compatible,anthropic,secret-store,key-resolver,router,failover,provider-error,index}.ts",
+    "packages/providers/test/{week01-providers,secret-store,router-failover}.test.ts",
+    "apps/daemon/src/index.ts (health + secret commands)",
+    "PROJECT_STATUS.md, NEXT-TASKS.md, SESSION-STATE.md, doc-of-journey (errors, tactics, daily/2026-09-24-2.md)"
+  ],
+  "decisions_locked": [],
+  "next_step": "Start WEEK-02 (weeks/WEEK-02.md): GitHub auth decision (ADR 0006: App vs OAuth vs PAT), REST client with pagination/ETag/backoff/rate-limit budget, zod-normalized entities, JSONL candidate store, fixtures, checkIssueState revalidation",
+  "user_blockers": ["U3 GitHub OAuth creds (WEEK-02 live smoke)", "U5 BYOK test key (live provider smoke)"]
+}

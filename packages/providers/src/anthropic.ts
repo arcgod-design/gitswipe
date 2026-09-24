@@ -8,7 +8,7 @@ import type {
   ProviderCapabilities,
   StructuredRequest,
 } from "./types.js";
-import { expectOk, ProviderError, withTimeout } from "./provider-error.js";
+import { expectOk, fetchOrThrow, ProviderError, withTimeout } from "./provider-error.js";
 import { parseSse } from "./openai-compatible.js";
 
 export interface AnthropicOptions {
@@ -49,10 +49,14 @@ export class AnthropicProvider implements AIProvider {
   }
 
   async listModels(): Promise<ModelInfo[]> {
-    const res = await this.doFetch(`${this.baseUrl}/models`, {
-      headers: this.headers(),
-      signal: withTimeout(undefined, 15_000),
-    });
+    const res = await fetchOrThrow(
+      () =>
+        this.doFetch(`${this.baseUrl}/models`, {
+          headers: this.headers(),
+          signal: withTimeout(undefined, 15_000),
+        }),
+      "anthropic",
+    );
     await expectOk(res, "anthropic: listModels");
     const body = (await res.json()) as { data?: Array<{ id: string; display_name?: string }> };
     return (body.data ?? []).map((m) => ({ id: m.id, displayName: m.display_name }));
@@ -128,20 +132,26 @@ export class AnthropicProvider implements AIProvider {
   }
 
   async structuredOutput<T>(req: ChatRequest, structured: StructuredRequest<T>): Promise<T> {
-    const response = await this.chat({
+    const instruction = (strict: boolean) =>
+      strict
+        ? `Output ONLY a valid JSON value matching: ${JSON.stringify(structured.schemaJson)}. No markdown fences, no prose, no extra keys.`
+        : `Reply with a single JSON object matching: ${JSON.stringify(structured.schemaJson)}. No prose.`;
+    const first = await this.chat({
       ...req,
-      messages: [
-        ...req.messages,
-        {
-          role: "system",
-          content: `Reply with a single JSON object matching: ${JSON.stringify(structured.schemaJson)}. No prose.`,
-        },
-      ],
+      messages: [...req.messages, { role: "system", content: instruction(false) }],
     });
     try {
-      return structured.parse(response.content);
+      return structured.parse(first.content);
     } catch {
-      throw new ProviderError("PROVIDER_FAILURE", "anthropic: structured output failed schema validation");
+      const retry = await this.chat({
+        ...req,
+        messages: [...req.messages, { role: "system", content: instruction(true) }],
+      });
+      try {
+        return structured.parse(retry.content);
+      } catch {
+        throw new ProviderError("PROVIDER_FAILURE", "anthropic: structured output failed schema validation after retry");
+      }
     }
   }
 
@@ -150,11 +160,15 @@ export class AnthropicProvider implements AIProvider {
   }
 
   private post(body: Record<string, unknown>, signal: AbortSignal | undefined): Promise<Response> {
-    return this.doFetch(`${this.baseUrl}/messages`, {
-      method: "POST",
-      headers: this.headers(),
-      body: JSON.stringify(body),
-      signal: withTimeout(signal, this.timeoutMs),
-    });
+    return fetchOrThrow(
+      () =>
+        this.doFetch(`${this.baseUrl}/messages`, {
+          method: "POST",
+          headers: this.headers(),
+          body: JSON.stringify(body),
+          signal: withTimeout(signal, this.timeoutMs),
+        }),
+      "anthropic",
+    );
   }
 }

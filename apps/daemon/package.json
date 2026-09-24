@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@jarvis/policy": "0.1.0",
-    "@jarvis/protocol": "0.1.0"
+    "@jarvis/protocol": "0.1.0",
+    "@jarvis/providers": "0.1.0"
   }
 }

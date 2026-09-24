@@ -7,8 +7,8 @@
 | Week | Theme | Status |
 |---|---|---|
 | WEEK-00 | Foundation (docs, monorepo, protocol/policy/providers cores, daemon CLI) | ✅ DONE (2026-09-24) |
-| WEEK-01 | Provider completeness + OS credential store | NEXT — current |
-| WEEK-02 | GitHub auth + ingestion | PENDING |
+| WEEK-01 | Provider completeness + OS credential store | ✅ DONE (2026-09-24) |
+| WEEK-02 | GitHub auth + ingestion | NEXT — current |
 | WEEK-03 | Discovery feed + swipes + skill graph v0 | PENDING |
 | WEEK-04 | AI opportunity engine + reference mode + radar | PENDING |
 | WEEK-05 | Workstation daemon v1 (identity/pairing/transport/journal) | PENDING |
@@ -20,15 +20,26 @@
 | WEEK-11 | Packaging + CI/CD + docs complete | PENDING |
 | WEEK-12 | Master acceptance scenario + v1 ship | PENDING |
 
-## WEEK-01 task list (next up)
+## WEEK-01 task list (✅ DONE 2026-09-24 — 75/75 tests)
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| A1 | structuredOutput + embeddings across adapters with capability negotiation | TODO | contract §141/§142 |
-| A2 | SecretStore interface + Windows Credential Manager impl (+ keychain/libsecret stubs) | TODO | contract §7.3; `.env` = dev-only fallback, flagged |
-| A3 | Routing API surface (5 route keys + user overrides) + tests | TODO | contract §7.2 |
-| A4 | Provider health command in daemon CLI (`jarvisd --health`) | TODO | contract §109 |
-| A5 | Failover within user-authorized providers only + tests | TODO | contract §110 — never silent provider switching |
+| A1 | structuredOutput + embeddings across adapters with capability negotiation | ✅ DONE | retry once with stricter prompt (§142); embeddings index-sorted; router enforces capability |
+| A2 | SecretStore interface + Windows Credential Manager impl (+ keychain/libsecret stubs) | ✅ DONE | DPAPI file store live-tested on win32; keychain/libsecret PROTO |
+| A3 | Routing API surface (5 route keys + user overrides) + tests | ✅ DONE | `ModelRouter` + `authorizedChain` |
+| A4 | Provider health command in daemon CLI (`jarvisd health`) | ✅ DONE | honest FAIL + exit 1; JARVIS_PROVIDERS=comma,list |
+| A5 | Failover within user-authorized providers only + tests | ✅ DONE | AUTH_FAILURE never fails over; aggregate error lists all attempts |
+
+## WEEK-02 task list (current)
+
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| B1 | GitHub auth decision: GitHub App vs OAuth App vs PAT (ADR 0006) | TODO | contract §2.2/§8 prefers App/scoped OAuth |
+| B2 | REST client with pagination, conditional requests (ETag), backoff, rate-limit budget | TODO | contract §126 |
+| B3 | Normalized entities (Repository, GitHubItem, health snapshot fields) zod-validated at boundary | TODO | contract §95, §189 |
+| B4 | Ingestion into local candidate store (JSONL) | TODO | |
+| B5 | Fixtures: closed/reopened issues, stale issues, rate-limit 429 responses, permission-changed tokens | TODO | contract §205 |
+| B6 | Revalidation primitive: checkIssueState before task start | TODO | contract §10.4/§57 |
 
 ## Standing items (user-side)
 

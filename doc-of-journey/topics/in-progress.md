@@ -1,5 +1,5 @@
 # topics/in-progress.md — current focus
 
-- **In-flight week**: WEEK-00 — foundation. Status: see `SESSION-STATE.md` (updated at session end per memory protocol).
-- **Next week when WEEK-00 exits**: WEEK-01 (provider completeness + OS credential store). Read `weeks/WEEK-01.md` first.
+- **In-flight week**: WEEK-01 — ✅ DONE (2026-09-24, session 2). Status: `SESSION-STATE.md`.
+- **Next week**: WEEK-02 — GitHub auth + ingestion. Read `weeks/WEEK-02.md` + the NEXT-TASKS WEEK-02 table first. First task: the auth-type decision (ADR 0006).
 - **Pointers**: repo-root `SESSION-STATE.md` (human state), `weeks/state/current.json` (machine state), `NEXT-TASKS.md` (board).
