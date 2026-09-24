@@ -1,6 +1,8 @@
 # WEEK-04 — AI opportunity engine: analysis, evidence, dedup, Reference mode, radar
 
 > Exit test: an AI finding carries evidence + confidence + a duplicate-check trail; known/closed/similar issues are correctly deduped; a Reference recommendation states why it's relevant; nothing claims certain uniqueness.
+>
+> **STATUS: ✅ DONE 2026-09-24** — all deterministic machinery green (116/116 repo-wide). The live provider-analysis loop (calling routed models over repo content) is daemon work from WEEK-05 onward; prompts, parser, routing, and gates are in place and mock-tested.
 
 ## Scope
 

@@ -1,0 +1,18 @@
+{
+  "date": "2026-09-24 (session 5)",
+  "in_flight_week": "WEEK-04",
+  "week_status": "done (deterministic machinery green: dedup v0, finding pipeline with evidence + confidence gate + duplicate trail, analysis prompts with untrusted-content rule, reference mode with explicit reasons, project radar with repo-scoped advisories). Live provider loop is WEEK-05+ daemon work",
+  "verified": [
+    "npm run typecheck -> 5/5 workspaces clean",
+    "npm test -> 116/116 passed (13 files)",
+    "npm audit -> 0 vulnerabilities"
+  ],
+  "files_touched": [
+    "packages/discovery/src/{dedup,finding,reference,prompts,radar,index}.ts",
+    "packages/discovery/test/{week04,radar}.test.ts",
+    "PROJECT_STATUS.md, NEXT-TASKS.md (WEEK-04 done + WEEK-05 board), SESSION-STATE.md, weeks/WEEK-00.md handoff, weeks/WEEK-04.md status, daily/2026-09-24-5.md"
+  ],
+  "decisions_locked": [],
+  "next_step": "Start WEEK-05 (weeks/WEEK-05.md): daemon as a long-running process - config precedence, device identity + pairing codes, loopback+LAN transport, JSONL event journal with replay, authenticated localhost API, health/heartbeats, durable task queue",
+  "user_blockers": ["U5 PAT for live GitHub smoke", "U5 BYOK key for live AI smoke", "U2 license (pre-release)"]
+}

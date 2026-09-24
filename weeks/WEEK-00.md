@@ -15,8 +15,8 @@
 
 ## Rolling handoff (update every session)
 
-- **Date**: 2026-09-24 (session 4)
-- **In-flight week**: WEEK-03 — ✅ DONE (discovery engine: candidates/8-kind model, swipe store, skill graph v0, explainable ranker + diversity, feed cards; swipe→ranking exit test green). NEXT: WEEK-04.
-- **Stack state**: see `SESSION-STATE.md` (as of 2026-09-24).
-- **Next concrete step**: start WEEK-04 per `weeks/WEEK-04.md` — dedup classifier v0 (exact + lexical, embeddings later), finding pipeline (evidence + confidence gate), AI analysis prompts behind routing, reference mode, radar foundations.
-- **Blockers**: user items in `USER-THING-TO-DO.md` (#5 PAT for live GitHub smoke; BYOK key for live AI-analysis smoke — mock tests need nothing).
+- **Date**: 2026-09-24 (session 5)
+- **In-flight week**: WEEK-04 — ✅ DONE (dedup v0, finding pipeline w/ evidence+confidence gate, analysis prompts w/ untrusted-content rule, reference mode, project radar). NEXT: WEEK-05.
+- **Stack state**: see `SESSION-STATE.md` (as of 2026-09-24). 116/116 tests, 5 packages + daemon CLI.
+- **Next concrete step**: start WEEK-05 per `weeks/WEEK-05.md` — the daemon becomes a real long-running process: config precedence, device identity + pairing codes, loopback+LAN transport, JSONL event journal with replay, localhost API with auth, health/heartbeats, durable task queue.
+- **Blockers**: user items in `USER-THING-TO-DO.md` (#5 PAT for live GitHub smoke; BYOK key for live AI smoke — all engines are mock-tested and need nothing to proceed).

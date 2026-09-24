@@ -26,6 +26,11 @@
 | Skill graph v0: language weights from history + swipes (right boosts, wrong-stack rejects to zero match), deterministic, "learned from activity" framing only | `packages/discovery/src/skills.ts` | vitest |
 | Hybrid ranker v0: skill-match + clarity + freshness + saved-similarity, explainable RankingReason[] per card, below-threshold → whyNot with showAnyway, diversity caps (language/repo) | `packages/discovery/src/rank.ts` | vitest — incl. the exit test: a right-swipe measurably changes the next ranking |
 | Feed cards: schema-validated FeedCard/FeedPage (contract §9.2 card fields, scores as recommendation signals) | `packages/discovery/src/feed.ts` | vitest |
+| Dedup classifier v0: exact (normalized title) + lexical (token Jaccard + repo/label metadata) → exact/likely/related/novel; never one signal alone (contract §11) | `packages/discovery/src/dedup.ts` | vitest |
+| Finding pipeline: evidence assembly, confidence gate (0.55), duplicate-check trail recorded on every FindingRecord, weak evidence → hypothesis label, model/version stamps, below-gate rejected (contract §10.2/§10.3, §168) | `packages/discovery/src/finding.ts` | vitest |
+| Analysis prompts: untrusted-content rule (§50) in every system prompt, structured finding schema + fenced-JSON parser with validation | `packages/discovery/src/prompts.ts` | vitest |
+| Reference mode: explicit reasons only (same language/topic/labels/title overlap), no-reason refs filtered (contract §12/§169) | `packages/discovery/src/reference.ts` | vitest |
+| Project radar: project-scoped candidate items, TODO/FIXME scanner with line numbers, repo-scoped dependabot advisories with source links — never invented (contract §13/§93) | `packages/discovery/src/radar.ts` | vitest |
 | Daemon CLI: `version` / `check` (preflight) / `health` (provider health — honest FAIL + exit 1) / `github check` (token + /user + rate budget) / `secret set|get|list|delete` (DPAPI-backed, masked display) | `apps/daemon` | manual runs 2026-09-24 |
 | Monorepo toolchain: npm workspaces, TS strict, vitest 5, CI workflow | root + `.github/workflows/ci.yml` | `npm run typecheck` + `npm test` green (75/75) |
 | Session-resume documentation system (this file + SESSION-STATE + weeks + doc-of-journey) | repo root | n/a — process, verified by use |

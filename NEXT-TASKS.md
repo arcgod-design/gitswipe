@@ -10,7 +10,8 @@
 | WEEK-01 | Provider completeness + OS credential store | ✅ DONE (2026-09-24) |
 | WEEK-02 | GitHub auth + ingestion | ✅ DONE (2026-09-24; live smoke pending user token) |
 | WEEK-03 | Discovery feed + swipes + skill graph v0 | ✅ DONE (2026-09-24) |
-| WEEK-04 | AI opportunity engine + reference mode + radar | NEXT — current |
+| WEEK-04 | AI opportunity engine + reference mode + radar | ✅ DONE (2026-09-24) |
+| WEEK-05 | Workstation daemon v1 (identity/pairing/transport/journal) | NEXT — current |
 | WEEK-05 | Workstation daemon v1 (identity/pairing/transport/journal) | PENDING |
 | WEEK-06 | AgentGateway + OpenCode adapter + worktrees + PR lifecycle | PENDING |
 | WEEK-07 | Security integration (policy on exec path, broker, approvals, audit) | PENDING |
@@ -52,16 +53,27 @@
 | C5 | Hybrid ranker v0: deterministic features + user-history signals, explainable ranking records | ✅ DONE | skill/clarity/freshness/saved-similarity + reasons per card |
 | C6 | Diversity constraints (language/repo/difficulty) + card contract fields | ✅ DONE | caps push overflow to whyNot with an explicit diversity reason |
 
-## WEEK-04 task list (current)
+## WEEK-04 task list (✅ DONE 2026-09-24 — 116/116 tests repo-wide)
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| D1 | Dedup classifier v0: exact duplicate + lexical/semantic-candidate detection (contract §11, embeddings later) | TODO | never let a single signal decide duplicate |
-| D2 | Finding pipeline: candidate → evidence assembly → confidence gate (§10.2/§10.3, §168 quality checklist) | TODO | weak evidence → hypothesis label, never "unique bug" |
-| D3 | AI analysis prompts behind provider routing (§7.2) — analysis prompt + structured output + model/version stamps | TODO | mock-tested; live needs BYOK key |
-| D4 | Revalidation-before-work wiring: cited code exists, issue still open (§10.4/§57) | TODO | builds on checkIssueState |
-| D5 | Reference mode: separate WORK vs REFERENCE feeds, explicit relevance reasons (§12, §169) | TODO | |
-| D6 | Project radar foundations: registered projects, radar item types (§13) | TODO | dependency advisories, missing tests, stale TODOs |
+| D1 | Dedup classifier v0: exact duplicate + lexical/semantic-candidate detection (contract §11, embeddings later) | ✅ DONE | normalized-title exact + token-Jaccard + repo/label metadata; embeddings join post-v1 behind the same interface |
+| D2 | Finding pipeline: candidate → evidence assembly → confidence gate (§10.2/§10.3, §168) | ✅ DONE | weak evidence → hypothesis; below-gate rejected with reason; duplicate trail on every record |
+| D3 | AI analysis prompts behind provider routing (§7.2) — structured output + model/version stamps | ✅ DONE (prompts + parser) | prompt templates + fenced-JSON parse validated; the live provider loop is daemon work (WEEK-05+) |
+| D4 | Revalidation-before-work wiring: cited code exists, issue still open (§10.4/§57) | ✅ DONE | checkIssueState (WEEK-02) + duplicate_status trail recorded |
+| D5 | Reference mode: separate WORK vs REFERENCE feeds, explicit relevance reasons (§12, §169) | ✅ DONE | no-reason refs filtered entirely |
+| D6 | Project radar foundations: registered projects, radar item types (§13) | ✅ DONE | project candidates + TODO scanner + repo-scoped dependabot advisories (source links, never invented) |
+
+## WEEK-05 task list (current)
+
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| E1 | Daemon as a long-running process: config precedence (§116), structured logs, `serve` becomes real | TODO | replaces the honest placeholder |
+| E2 | Device identity: durable keypair + id; short-lived pairing codes → key exchange → revocable identities (§23) | TODO | pairing code never becomes the credential |
+| E3 | Transport v1: LocalLoopback + LAN behind TransportProvider; outbound-only; versioned handshake `jarvis-workstation/1.0` (§24/§107) | TODO | |
+| E4 | Event journal: append-only JSONL, monotonic sequence, replay-from-cursor + snapshot-on-gap (§120/§121) | TODO | protocol envelope from WEEK-00 |
+| E5 | Localhost API: authenticated loopback session token, CORS/origin locked (§148/§149) | TODO | |
+| E6 | Health report + heartbeats (§88/§195) + task queue durability (§111/§112) | TODO | |
 
 ## Standing items (user-side)
 

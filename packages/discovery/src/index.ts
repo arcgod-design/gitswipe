@@ -3,3 +3,8 @@ export * from "./swipes.js";
 export * from "./skills.js";
 export * from "./rank.js";
 export * from "./feed.js";
+export * from "./dedup.js";
+export * from "./finding.js";
+export * from "./reference.js";
+export * from "./prompts.js";
+export * from "./radar.js";

@@ -1,32 +1,33 @@
-# SESSION-STATE.md — as of 2026-09-24 (WEEK-03 complete)
+# SESSION-STATE.md — as of 2026-09-24 (WEEK-04 complete)
 
 ## Current week
 
-**WEEK-03** — ✅ **DONE.** Discovery engine: candidate classification (EXISTING_ISSUE/STALE_ISSUE live; AI kinds join in WEEK-04 behind the same model), swipe store (§9.3 vocabulary), skill graph v0 (swipe-driven weights), explainable hybrid ranker v0 (skill/clarity/freshness/saved-similarity + whyNot + showAnyway), diversity caps, schema-validated feed cards. The exit test — a right-swipe measurably changes the next ranking — is green.
+**WEEK-04** — ✅ **DONE (deterministic machinery).** Dedup classifier v0 (exact + lexical + metadata, never one signal), finding pipeline (evidence assembly → confidence gate 0.55 → duplicate trail on every FindingRecord; weak evidence labeled hypothesis; below-gate rejected with reason), analysis prompts (untrusted-content rule in every system prompt, fenced-JSON structured-output parser), reference mode (explicit reasons only), project radar (project candidates, TODO/FIXME scanner, repo-scoped dependabot advisories with source links). Live provider-analysis loop = daemon weeks (WEEK-05+).
 
 ## Stack state
 
 - Node 22.14, TS 5.9, zod 3.25, vitest 5.0.1, tsx 4.20. npm audit: 0 vulns.
-- 99 tests / 12 files (~2s): protocol 20 + policy 22 + providers 33 + github 13 + discovery 11.
-- Packages: `@jarvis/protocol`, `@jarvis/policy`, `@jarvis/providers`, `@jarvis/github`, `@jarvis/discovery`, `@jarvis/daemon` (CLI: version/check/health/github check/secret).
-- ADRs 0001–0006.
+- 116 tests / 13 files (~2.2s): protocol 20 + policy 22 + providers 33 + github 13 + discovery 28.
+- Packages: `@jarvis/protocol`, `@jarvis/policy`, `@jarvis/providers`, `@jarvis/github`, `@jarvis/discovery`, `@jarvis/daemon`.
+- ADRs 0001–0006. All WEEK-00..04 scope shipped; WEEK-05 (daemon v1) is next.
 
 ## Verified this session (exact commands, real outputs)
 
-- `npm run typecheck` → 5/5 workspaces clean (discovery included)
-- `npm test` → 99/99 passed
+- `npm run typecheck` → 5/5 workspaces clean
+- `npm test` → 116/116 passed
 - `npm audit` → 0 vulnerabilities
 
 ## Known pain points
 
-- Ranker ties: stable sort keeps candidate order on equal scores — tests must not assume tie-breaks; seed dominant weights for deterministic scenarios.
-- Same recurring machine hazards (OneDrive churn, PS 5.1 UTF-8 regex, vitest 3→5 only).
+- Test fixtures inheriting `language` from spread-base caused false reference matches — watch fixture spreads.
+- Ranker ties: seed dominant weights; never assert tie-break order.
+- Recurring machine hazards: OneDrive churn, PS 5.1 UTF-8 regex, vitest 3→5 only.
 
 ## Next concrete steps
 
-1. **WEEK-04**: dedup classifier v0 (exact + lexical candidate signals, embeddings later — contract §11), finding pipeline (evidence assembly + confidence gate + §168 quality checklist, weak evidence → hypothesis), AI analysis prompts behind model routing (mock-tested), revalidation wiring, reference mode, radar foundations. Read `weeks/WEEK-04.md`.
-2. User whenever ready: PAT via `jarvisd secret set github:token` → `github check` live smoke.
+1. **WEEK-05** (the big one): daemon becomes a real process — config precedence (§116), device identity + 10-min pairing codes → key exchange (§23), loopback+LAN TransportProvider + `jarvis-workstation/1.0` handshake (§24/§107), append-only JSONL event journal with replay-from-cursor (§120/§121), authenticated localhost API (§148), health + heartbeats (§88/§195), durable task queue (§111/§112). Read `weeks/WEEK-05.md`.
+2. User whenever ready: PAT (`jarvisd secret set github:token`) + BYOK key → live smokes.
 
 ## Docs health
 
-All current; PROJECT_STATUS/NEXT-TASKS/week files/state updated this session; daily log `2026-09-24-4.md`.
+All current; daily log `2026-09-24-5.md`; state JSON `2026-09-24-5.json`.
