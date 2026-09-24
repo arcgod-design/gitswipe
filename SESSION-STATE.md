@@ -1,36 +1,33 @@
-# SESSION-STATE.md — as of 2026-09-24 (WEEK-01 complete)
+# SESSION-STATE.md — as of 2026-09-24 (WEEK-02 complete)
 
 ## Current week
 
-**WEEK-01** — ✅ **DONE.** Exit test passed in full: provider suite green including timeout/429/auth-failure/malformed-stream mocks; BYOK key round-trips through the OS credential store (DPAPI live test proves plaintext never touches disk); routing resolves per task type with user overrides and authorized-only failover.
+**WEEK-02** — ✅ **DONE (fixture-driven).** GitHub client with pagination/ETag/backoff/rate-budget; fine-grained PAT auth (ADR 0006) through the OS secret store; zod-normalized entities with stale detection; JSONL candidate store; `checkIssueState` revalidation; `jarvisd github check` live-smoke command. Live smoke = blocked on user token (honest failure verified).
 
 ## Stack state
 
-- Node 22.14.0, npm 10.9.2, git 2.54. TypeScript 5.9, zod 3.25, vitest 5.0.1 (0 audit vulns), tsx 4.20.
-- 75 tests / 10 files (~2s): protocol (20) + policy (22) + providers (33).
-- Provider layer complete for v1 needs: chat/stream/embeddings/structured (with retry) + health + registry + router + authorized failover + typed TIMEOUT/NETWORK_FAILURE errors + resilient SSE.
-- BYOK: Windows DPAPI file store WORKING (live-tested); keychain/libsecret PROTO. Key resolution: OS store > `.env` (flagged dev) > none.
-- Daemon CLI: version / check / health / secret set|get|list|delete. `serve` = honest WEEK-05 placeholder.
+- Node 22.14, TS 5.9, zod 3.25, vitest 5.0.1, tsx 4.20. npm audit: 0 vulns.
+- 88 tests / 11 files (~2s): protocol 20 + policy 22 + providers 33 + github 13.
+- Packages: `@jarvis/protocol` (domain contracts), `@jarvis/policy` (14-rule engine), `@jarvis/providers` (adapters + secrets + router + failover), `@jarvis/github` (client + entities + ingestion + store + revalidation), `@jarvis/daemon` (CLI: version/check/health/github check/secret).
+- ADRs: 0001–0006.
 
 ## Verified this session (exact commands, real outputs)
 
-- `npm run typecheck` → 4/4 workspaces clean
-- `npm test` → 75/75 passed
-- `npm audit` → 0 vulnerabilities
-- `npm run daemon -- secret set/get/list/delete provider:openai` → stored `sk-t...7890 (dpapi-file)` masked, listed, deleted — full round-trip through real DPAPI
-- `npm run daemon -- health` → `ollama FAIL fetch failed`, exit code 1 (honest failure, no ollama running); with `JARVIS_PROVIDERS=openai,ollama` → `openai FAIL HTTP 401` (no key configured — correct)
+- `npm run typecheck` → 4/4 workspaces clean (now includes @jarvis/github)
+- `npm test` → 88/88 passed
+- `npm run daemon -- github check` → "no GitHub token configured. Set one: 'jarvisd secret set github:token'" + exit 1 (honest)
+- `npm run daemon -- github` → usage text + exit 1
 
 ## Known pain points
 
-- OneDrive workspace sync churn — clean reinstall fixes if fs flakiness appears.
-- PS 5.1 regex passes corrupt UTF-8 — never bulk-edit non-ASCII files via PowerShell (see errors.md).
-- vitest@4 crashes npm's arborist — always jump 3→5.
+- Same as prior sessions (OneDrive churn; PS 5.1 UTF-8 regex hazard; vitest 3→5 only).
+- GitHub 403 handling nuance: 403 with `x-ratelimit-remaining: 0` maps to RATE_LIMITED (with backoff), otherwise AUTH_FAILURE — tested both.
 
 ## Next concrete steps
 
-1. **WEEK-02** next session: read `weeks/WEEK-02.md` → GitHub auth decision (ADR 0006: App vs OAuth vs PAT), REST client with pagination/ETag/backoff/rate-limit budget, normalized entities, JSONL candidate store, fixtures, checkIssueState revalidation.
-2. User items: GitHub OAuth/App creds (U3) for the WEEK-02 live smoke; fixtures/tests need nothing.
+1. **WEEK-03**: candidate/opportunity model (8 explicit kinds), feed queue (small pre-fetch, lazy deep analysis), swipe persistence + why-not vocabulary, skill graph v0 (deterministic), hybrid ranker v0 with explainable records, diversity constraints. Read `weeks/WEEK-03.md`.
+2. User: fine-grained PAT via `jarvisd secret set github:token` whenever ready → rerun `github check` for the live smoke (U3/#5).
 
 ## Docs health
 
-All docs current; ADRs 0001–0005; WEEK-01 ledger updated (NEXT-TASKS, PROJECT_STATUS, this file, state JSONs, daily 2026-09-24-2.md).
+All current; ADR 0006 added; PROJECT_STATUS/NEXT-TASKS/week files/state JSONs updated this session.

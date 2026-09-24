@@ -15,8 +15,8 @@
 
 ## Rolling handoff (update every session)
 
-- **Date**: 2026-09-24 (session 2)
-- **In-flight week**: WEEK-01 — ✅ DONE (75/75 tests; DPAPI secret store live-verified; router + authorized failover; daemon health/secret commands). NEXT: WEEK-02.
+- **Date**: 2026-09-24 (session 3)
+- **In-flight week**: WEEK-02 — ✅ DONE (GitHub client: pagination/ETag/backoff/rate-budget; fine-grained PAT auth ADR 0006; normalized entities + fixtures; JSONL candidate store; checkIssueState; `jarvisd github check`). Live smoke pending user token. NEXT: WEEK-03.
 - **Stack state**: see `SESSION-STATE.md` (as of 2026-09-24).
-- **Next concrete step**: start WEEK-02 per `weeks/WEEK-02.md` — GitHub auth decision (ADR 0006), REST client with pagination/ETag/backoff, normalized entities, fixtures, checkIssueState.
-- **Blockers**: user items in `USER-THING-TO-DO.md` (#3 GitHub creds for live smoke; #5 BYOK key).
+- **Next concrete step**: start WEEK-03 per `weeks/WEEK-03.md` — candidate/opportunity model (8 kinds), feed queue, swipe persistence, skill graph v0, hybrid ranker v0 with explanations, diversity.
+- **Blockers**: user items in `USER-THING-TO-DO.md` (#5 token for live GitHub smoke; #3 OAuth creds now optional — ADR 0006 made PAT primary).

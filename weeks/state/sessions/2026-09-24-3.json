@@ -1,0 +1,20 @@
+{
+  "date": "2026-09-24 (session 3)",
+  "in_flight_week": "WEEK-02",
+  "week_status": "done fixture-driven (88/88 tests; pagination/ETag/429-backoff/rate-budget; ADR 0006 PAT auth; entities+stale; JSONL store with first_seen preservation; checkIssueState). Live smoke pending user token",
+  "verified": [
+    "npm run typecheck -> 4/4 workspaces clean (incl. @jarvis/github)",
+    "npm test -> 88/88 passed (11 files)",
+    "npm run daemon -- github check -> honest no-token failure, exit 1",
+    "npm run daemon -- github -> usage text, exit 1"
+  ],
+  "files_touched": [
+    "doc-of-journey/decisions/0006-github-auth-v1-fine-grained-pat.md",
+    "packages/github/* (auth, client, entities, store, ingest, index + test/github.test.ts)",
+    "apps/daemon/src/index.ts (github check command)",
+    ".env.example, PROJECT_STATUS.md, NEXT-TASKS.md, SESSION-STATE.md, weeks/WEEK-00.md handoff, weeks/WEEK-02.md status, daily/2026-09-24-3.md"
+  ],
+  "decisions_locked": ["0006 GitHub auth v1 = fine-grained PAT in OS store; GitHubAuth interface for OAuth/App later"],
+  "next_step": "Start WEEK-03 (weeks/WEEK-03.md): candidate/opportunity model (8 kinds), feed queue, swipe persistence + why-not, skill graph v0, hybrid ranker v0 + explanations, diversity constraints",
+  "user_blockers": ["U5 fine-grained PAT via 'jarvisd secret set github:token' for live GitHub smoke", "U2 license (pre-release)", "U5 BYOK provider key (live provider smoke)"]
+}

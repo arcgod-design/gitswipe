@@ -1,6 +1,8 @@
 # WEEK-02 — GitHub: auth, ingestion, normalized entities, rate limits
 
 > Exit test: fixture-driven ingestion tests green (repos/issues/PRs incl. closed/reopened/stale cases); rate-limit handling proven with mock 429/ETag behavior; the auth path is documented and smoke-tested live with the user's account.
+>
+> **STATUS: ✅ DONE 2026-09-24** — fixture-driven suite fully green (88/88 repo-wide); live smoke pending user token (USER-THING-TO-DO #5/U3 — `jarvisd github check` prints an honest no-token failure today). ADR 0006 locked: fine-grained PAT.
 
 ## Scope
 

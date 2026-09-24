@@ -8,8 +8,8 @@
 |---|---|---|
 | WEEK-00 | Foundation (docs, monorepo, protocol/policy/providers cores, daemon CLI) | ✅ DONE (2026-09-24) |
 | WEEK-01 | Provider completeness + OS credential store | ✅ DONE (2026-09-24) |
-| WEEK-02 | GitHub auth + ingestion | NEXT — current |
-| WEEK-03 | Discovery feed + swipes + skill graph v0 | PENDING |
+| WEEK-02 | GitHub auth + ingestion | ✅ DONE (2026-09-24; live smoke pending user token) |
+| WEEK-03 | Discovery feed + swipes + skill graph v0 | NEXT — current |
 | WEEK-04 | AI opportunity engine + reference mode + radar | PENDING |
 | WEEK-05 | Workstation daemon v1 (identity/pairing/transport/journal) | PENDING |
 | WEEK-06 | AgentGateway + OpenCode adapter + worktrees + PR lifecycle | PENDING |
@@ -30,16 +30,27 @@
 | A4 | Provider health command in daemon CLI (`jarvisd health`) | ✅ DONE | honest FAIL + exit 1; JARVIS_PROVIDERS=comma,list |
 | A5 | Failover within user-authorized providers only + tests | ✅ DONE | AUTH_FAILURE never fails over; aggregate error lists all attempts |
 
-## WEEK-02 task list (current)
+## WEEK-02 task list (✅ DONE 2026-09-24 — 88/88 tests; live smoke blocked on user token)
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| B1 | GitHub auth decision: GitHub App vs OAuth App vs PAT (ADR 0006) | TODO | contract §2.2/§8 prefers App/scoped OAuth |
-| B2 | REST client with pagination, conditional requests (ETag), backoff, rate-limit budget | TODO | contract §126 |
-| B3 | Normalized entities (Repository, GitHubItem, health snapshot fields) zod-validated at boundary | TODO | contract §95, §189 |
-| B4 | Ingestion into local candidate store (JSONL) | TODO | |
-| B5 | Fixtures: closed/reopened issues, stale issues, rate-limit 429 responses, permission-changed tokens | TODO | contract §205 |
-| B6 | Revalidation primitive: checkIssueState before task start | TODO | contract §10.4/§57 |
+| B1 | GitHub auth decision: GitHub App vs OAuth App vs PAT (ADR 0006) | ✅ DONE | fine-grained PAT in OS store; `GitHubAuth` interface ready for OAuth/App later |
+| B2 | REST client with pagination, conditional requests (ETag), backoff, rate-limit budget | ✅ DONE | Link-header pagination, If-None-Match/304, Retry-After + X-RateLimit-Reset backoff |
+| B3 | Normalized entities (Repository, GitHubItem, health snapshot fields) zod-validated at boundary | ✅ DONE | incl. stale detection + PR/issue separation |
+| B4 | Ingestion into local candidate store (JSONL) | ✅ DONE | upsert preserves first_seen_at, atomic tmp+rename writes |
+| B5 | Fixtures: closed/reopened issues, stale issues, rate-limit 429 responses, permission-changed tokens | ✅ DONE | all in vitest vs mock server |
+| B6 | Revalidation primitive: checkIssueState before task start | ✅ DONE | open/closed/not_found/permission_denied |
+
+## WEEK-03 task list (current)
+
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| C1 | Candidate/opportunity model wired to ingestion: 8 explicit kinds (contract §9.1) | TODO | kinds never merged into one opaque type |
+| C2 | Feed API: pre-fetched swipe queue (small, lazy deep analysis), staleness timestamps | TODO | contract §129, §125 |
+| C3 | Swipe persistence + feedback vocabulary (§9.3) + why-not reasons | TODO | |
+| C4 | Skill graph v0: explicit skills + GitHub history + swipe signal, deterministic scoring | TODO | contract §14; "learned from your activity" framing, never objective truth |
+| C5 | Hybrid ranker v0: deterministic features + user-history signals, explainable ranking records | TODO | contract §15/§173; no "objectively best" claims (§70) |
+| C6 | Diversity constraints (language/repo/domain/difficulty) + card contract fields | TODO | contract §128, §9.2 |
 
 ## Standing items (user-side)
 

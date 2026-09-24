@@ -10,6 +10,7 @@ import {
   resolveApiKey,
   type SecretStore,
 } from "@jarvis/providers";
+import { GitHubClient, TokenGitHubAuth, GITHUB_TOKEN_KEY } from "@jarvis/github";
 
 const execFileAsync = promisify(execFile);
 
@@ -126,6 +127,44 @@ async function secretCommand(args: string[]): Promise<void> {
   process.exit(1);
 }
 
+async function githubCheckCommand(): Promise<void> {
+  const store = secretStore();
+  const token = await store.get(GITHUB_TOKEN_KEY);
+  const envToken = process.env.GITHUB_TOKEN;
+  if (token) {
+    process.stdout.write(`github token: ${maskKey(token)} (os-store, ${store.kind})\n`);
+  } else if (envToken) {
+    process.stderr.write("github token: env GITHUB_TOKEN — dev mode; move it to the OS store via 'jarvisd secret set github:token'\n");
+  } else {
+    process.stderr.write("no GitHub token configured. Set one: 'jarvisd secret set github:token' (paste the fine-grained PAT on stdin)\n");
+    process.exit(1);
+  }
+  const client = new GitHubClient({ auth: new TokenGitHubAuth({ store }) });
+  try {
+    const res = await client.get<{ login: string }>("/user");
+    const user = res.data?.login ?? "unknown";
+    const rate = client.rateBudget();
+    process.stdout.write(`authenticated as: ${user}\n`);
+    process.stdout.write(`rate budget: ${rate.remaining ?? "?"}/${rate.limit ?? "?"}\n`);
+    process.exit(0);
+  } catch (err) {
+    process.stderr.write(`github check failed: ${err instanceof Error ? err.message : String(err)}\n`);
+    process.exit(1);
+  }
+}
+
+async function githubCommand(args: string[]): Promise<void> {
+  const sub = (args[0] ?? "").replace(/^--/, "");
+  if (sub === "check") {
+    await githubCheckCommand();
+    return;
+  }
+  process.stderr.write(
+    ["usage:", "  jarvisd github check   verify token + print login + rate budget", ""].join("\n"),
+  );
+  process.exit(1);
+}
+
 function serve(): never {
   process.stderr.write(
     "jarvisd: long-running workstation service ships in WEEK-05 (weeks/WEEK-05.md). " +
@@ -145,6 +184,9 @@ switch (arg) {
   case "health":
     await healthCommand();
     break;
+  case "github":
+    await githubCommand(process.argv.slice(3));
+    break;
   case "secret":
     await secretCommand(process.argv.slice(3));
     break;
@@ -159,6 +201,7 @@ switch (arg) {
         "  jarvisd version        print version",
         "  jarvisd check          toolchain preflight-lite",
         "  jarvisd health         provider health (JARVIS_PROVIDERS=comma,list)",
+        "  jarvisd github check   verify GitHub token + print login + rate budget",
         "  jarvisd secret <cmd>   BYOK key store (OS credential store)",
         "  jarvisd serve          start the workstation service (WEEK-05)",
         "",

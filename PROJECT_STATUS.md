@@ -16,7 +16,12 @@
 | ModelRouter: 5 route keys, user overrides, authorized chains — primary first, only user-listed failovers, unauthorized primary rejected | `packages/providers/src/router.ts` | vitest |
 | Authorized-only failover: RATE_LIMITED/PROVIDER_FAILURE/TIMEOUT/NETWORK_FAILURE fail over within the user chain; AUTH_FAILURE never fails over (bad keys surface); aggregate error lists every attempt | `packages/providers/src/failover.ts` | vitest |
 | Typed transport errors: hanging endpoint → `[TIMEOUT]`, refused → `[NETWORK_FAILURE]`; malformed SSE lines skipped without killing the stream | `packages/providers` | vitest |
-| Daemon CLI: `version` / `check` (preflight) / `health` (provider health — honest FAIL + exit 1) / `secret set|get|list|delete` (DPAPI-backed, masked display) | `apps/daemon` | manual runs 2026-09-24 |
+| GitHub client: pagination (Link header), conditional ETag requests (304), 429/403 backoff honoring Retry-After/X-RateLimit-Reset, rate-budget tracking, typed error mapping (401→AUTH, exhausted 403/429→RATE_LIMITED, 404→GITHUB_STATE_CHANGED) | `packages/github/src/client.ts` | vitest vs local mock server |
+| GitHub auth: fine-grained PAT via OS secret store > env(dev-flagged) (ADR 0006); `GitHubAuth` interface for future OAuth-device/App adapters | `packages/github/src/auth.ts` | vitest + `jarvisd github check` (honest no-token failure verified) |
+| Normalized entities (Repository/Issue/PR) zod-validated at boundary; stale detection (>90d untouched open); PR-in-issues-list separation | `packages/github/src/entities.ts` | vitest with contract §205 fixtures |
+| JSONL candidate store: append/upsert (first_seen preserved on update, last_sync bumped), tmp+rename atomic writes | `packages/github/src/store.ts` | vitest |
+| Ingestion + revalidation: repo fetch, issues/PRs ingest with counts (issues/PRs/stale), `checkIssueState` (open/closed/not_found/permission_denied) before any task start | `packages/github/src/ingest.ts` | vitest |
+| Daemon CLI: `version` / `check` (preflight) / `health` (provider health — honest FAIL + exit 1) / `github check` (token + /user + rate budget) / `secret set|get|list|delete` (DPAPI-backed, masked display) | `apps/daemon` | manual runs 2026-09-24 |
 | Monorepo toolchain: npm workspaces, TS strict, vitest 5, CI workflow | root + `.github/workflows/ci.yml` | `npm run typecheck` + `npm test` green (75/75) |
 | Session-resume documentation system (this file + SESSION-STATE + weeks + doc-of-journey) | repo root | n/a — process, verified by use |
 
@@ -28,6 +33,7 @@
 | Puter client-side AIProvider bridge (injected puter object, chat only) | `packages/providers/src/puter.ts` | Needs the browser puter.js runtime; wired and tested in WEEK-08. Never a daemon-side dependency. |
 | Daemon as a long-running process (identity, pairing, transport, journal) | `apps/daemon` | Skeleton only — WEEK-05 builds it. `serve` explicitly reports not-implemented. |
 | Live provider smoke against real APIs (OpenAI/Ollama/etc.) | — | Needs BYOK key in `.env` or OS store (USER-THING-TO-DO #5). All current tests use local mock servers by design. |
+| Live GitHub smoke (real token → /user → live repo ingest) | `jarvisd github check` path | Needs a fine-grained PAT in the OS store (USER-THING-TO-DO #5/U3). Fixture-driven tests fully green; the live path prints honest no-token failure today. |
 
 ## ROADMAP (scheduled, contract sections in parens)
 
