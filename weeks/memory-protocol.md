@@ -53,15 +53,17 @@ Only put things in `verified` that you actually ran. If you did not run it, it i
 - `PROJECT_STATUS.md` — any capability that changed label (WORKING/PROTO/ROADMAP).
 - `NEXT-TASKS.md` — tick/untick rows for the in-flight week.
 
-## 5. Commit and push
+## 5. Commit and push (to dev — ADR 0007)
 
 ```bash
 git add -A
 git commit -m "docs+state: session <date> — <one line>"
-git push
+git push origin dev
 ```
 
 If code changed materially, prefer splitting code and state commits. Never amend a pushed commit; add a new one.
+
+**Milestone merges to main**: when a week's exit test is recorded green AND the full suite passes, merge dev → main with `--no-ff`, tag `vX.Y.Z`, push main + tag. Never commit directly to main. The `mvp` branch carries the pitch/demo slice and merges into dev only when a demo feature reaches production grade.
 
 ## Anti-hallucination rules
 

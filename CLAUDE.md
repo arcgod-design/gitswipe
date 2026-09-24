@@ -37,6 +37,7 @@ See `PROJECT-CORE.md` for the full table and `doc-of-journey/decisions/` for the
 
 ## Hard rules
 
+- **Branch model (ADR 0007)**: work on `dev` (all WEEK-ladder commits + session-end pushes). `main` receives only verified merges from dev, each tagged `vX.Y.Z`. `mvp` = pitch/demo slice, branched from dev, demo shortcuts always labeled. Never commit directly to main, never force-push main.
 - **Never claim as working what is only designed.** Label everything WORKING / PROTO / ROADMAP in `PROJECT_STATUS.md`. A feature is done only per the definition-of-done checklist (contract §208).
 - **No secrets in code, docs, logs, commits, or issue text.** `.env` is gitignored; keys live in the OS credential store on the workstation (WEEK-07 broker). If a key appears in a log, that's a bug, fix the log path.
 - **Don't push, don't commit secrets, don't force-push.** Conventional commits. One clean commit per work unit; never commit on the user's behalf beyond what they asked.
