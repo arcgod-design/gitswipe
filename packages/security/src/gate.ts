@@ -139,11 +139,14 @@ export class ExecutionGate {
 
   async executeAfterApproval(approval: ApprovalRequest, request: GateRequest, context: GateContext): Promise<ExecutionOutcome> {
     const action = request.argv.join(" ");
-    const binding = await verifyGrantedApproval({
-      approval,
-      action,
-      action_payload: { argv: [...request.argv], cwd: request.cwd },
-    });
+    const binding = await verifyGrantedApproval(
+      {
+        approval,
+        action,
+        action_payload: { argv: [...request.argv], cwd: request.cwd },
+      },
+      { actor: context.actor, sessionId: context.sessionId, taskId: context.taskId, policyVersion: context.policyVersion },
+    );
     if (!binding.ok) {
       this.deps.audit.record({
         actor: context.actor,
@@ -173,11 +176,13 @@ export class ExecutionGate {
 
     const drift = this.denyCheck(request, context);
     if (drift !== null && drift.kind === "deny") {
+      approval.status = "consumed";
       return { ok: false, exitCode: null, stdout: "", stderr: "", refusalReason: `policy drifted to deny before execution: ${drift.reason}` };
     }
 
     const outcome = await this.run(request, context);
     this.executedApprovals.add(approval.approval_id);
+    approval.status = "consumed";
     this.deps.audit.record({
       actor: context.actor,
       session_id: context.sessionId,
@@ -185,7 +190,7 @@ export class ExecutionGate {
       category: "action_executed",
       action,
       decision: outcome.ok ? "ALLOW" : "FAILED",
-      detail: outcome.ok ? "executed after approved binding" : `exit ${outcome.exitCode ?? "unknown"}`,
+      detail: outcome.ok ? "executed after approved binding; approval consumed" : `exit ${outcome.exitCode ?? "unknown"}; approval consumed`,
       action_hash: approval.action_hash,
     });
     return outcome;

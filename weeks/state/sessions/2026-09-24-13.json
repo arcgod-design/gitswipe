@@ -1,0 +1,20 @@
+{
+  "date": "2026-09-24 (session 13)",
+  "in_flight_week": "WEEK-07 CI fix",
+  "week_status": "done - CI root cause fixed (scratch repo lacked local git identity; the approval flow was correct), plus security upgrades: execution-context binding (s58), explicit consumed state, state-based replay protection, failed-execution consumes approval, secret-scanner-safe fixtures",
+  "verified": [
+    "npm run typecheck -> clean",
+    "npm test -> 168/168 twice",
+    "gate tests: approved commit really executes with local identity; wrong actor + policy drift + consumed + copy-replay all refused"
+  ],
+  "files_touched": [
+    "packages/protocol/src/approval.ts",
+    "packages/security/src/gate.ts",
+    "packages/security/test/{gate,broker-redaction}.test.ts",
+    "packages/protocol/test/approval.test.ts",
+    "doc-of-journal daily/errors, NEXT-TASKS, PROJECT_STATUS, SESSION-STATE"
+  ],
+  "decisions_locked": [],
+  "next_step": "Commit fix(security), push dev, merge to main (v0.3.1) so main's CI goes green; then WEEK-08 per the ladder",
+  "user_blockers": ["U5 BYOK key (WEEK-06 live tail + live AI smoke)", "U5 PAT (live GitHub smoke)", "U2 license (pre-release)"]
+}

@@ -1,6 +1,8 @@
 # WEEK-06 — AgentGateway: OpenCode adapter, mock agent, sessions, worktrees, PR lifecycle
 
 > Exit test: a mock-agent session runs the full lifecycle E2E (start → events → files changed → tests → approval request → complete) against a scratch repo; a real OpenCode session does the same live; every session maps through JarvisSession with its own worktree; PR lifecycle follow-ups queue correctly (fix-on-branch, rebase-on-conflict, bot-review resolution, maintainer-blocked).
+>
+> **STATUS: PARTIAL — deterministic core DONE 2026-09-24** (`@jarvis/agents`: gateway with state-machine-legal lifecycle, worktrees per REPO-WORK-CONVENTIONS on real scratch repos, checkpoints, mock agent, OpenCode dispatch conventions + takeover research per ADR 0008 addendum — 13 tests). **Open: live OpenCode session + PR-lifecycle watch loop** — blocked on a machine with `opencode` + a BYOK key (U5). Until then the OpenCodeAdapter runtime paths stay PROTO by design (they refuse to pretend).
 
 ## Scope
 

@@ -39,7 +39,7 @@ export const ApprovalRequestSchema = z.object({
   risk_level: z.enum(RISK_LEVELS),
   created_at: z.string().datetime(),
   expires_at: z.string().datetime(),
-  status: z.enum(["pending", "granted", "denied", "expired"]),
+  status: z.enum(["pending", "granted", "denied", "expired", "consumed"]),
 });
 
 export type ApprovalRequest = z.infer<typeof ApprovalRequestSchema>;
@@ -85,14 +85,31 @@ export interface ApprovalDecisionInput {
   at?: Date;
 }
 
-export async function verifyGrantedApproval(input: ApprovalDecisionInput): Promise<
+export interface ApprovalContextBinding {
+  actor?: string;
+  sessionId?: string | null;
+  taskId?: string | null;
+  policyVersion?: string;
+}
+
+export async function verifyGrantedApproval(
+  input: ApprovalDecisionInput,
+  expected?: ApprovalContextBinding,
+): Promise<
   | { ok: true }
-  | { ok: false; reason: "not_granted" | "expired" | "action_mismatch" | "payload_mismatch" }
+  | { ok: false; reason: "not_granted" | "consumed" | "expired" | "action_mismatch" | "payload_mismatch" | "context_mismatch" }
 > {
   const { approval } = input;
   const at = input.at ?? new Date();
+  if (approval.status === "consumed") return { ok: false, reason: "consumed" };
   if (approval.status !== "granted") return { ok: false, reason: "not_granted" };
   if (isApprovalExpired(approval, at)) return { ok: false, reason: "expired" };
+  if (expected !== undefined) {
+    if (expected.actor !== undefined && expected.actor !== approval.user_id) return { ok: false, reason: "context_mismatch" };
+    if (expected.sessionId !== undefined && (expected.sessionId ?? null) !== approval.session_id) return { ok: false, reason: "context_mismatch" };
+    if (expected.taskId !== undefined && (expected.taskId ?? null) !== approval.task_id) return { ok: false, reason: "context_mismatch" };
+    if (expected.policyVersion !== undefined && expected.policyVersion !== approval.policy_version) return { ok: false, reason: "context_mismatch" };
+  }
   if ((await hashAction(input.action)) !== approval.action_hash) return { ok: false, reason: "action_mismatch" };
   if ((await hashAction(input.action_payload)) !== approval.action_payload_hash) {
     return { ok: false, reason: "payload_mismatch" };
