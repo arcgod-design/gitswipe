@@ -85,6 +85,21 @@ export interface ApprovalDecisionInput {
   at?: Date;
 }
 
+export async function verifyGrantedApproval(input: ApprovalDecisionInput): Promise<
+  | { ok: true }
+  | { ok: false; reason: "not_granted" | "expired" | "action_mismatch" | "payload_mismatch" }
+> {
+  const { approval } = input;
+  const at = input.at ?? new Date();
+  if (approval.status !== "granted") return { ok: false, reason: "not_granted" };
+  if (isApprovalExpired(approval, at)) return { ok: false, reason: "expired" };
+  if ((await hashAction(input.action)) !== approval.action_hash) return { ok: false, reason: "action_mismatch" };
+  if ((await hashAction(input.action_payload)) !== approval.action_payload_hash) {
+    return { ok: false, reason: "payload_mismatch" };
+  }
+  return { ok: true };
+}
+
 export async function verifyApprovalBinding(input: ApprovalDecisionInput): Promise<
   | { ok: true; approval: ApprovalRequest }
   | { ok: false; reason: "expired" | "action_mismatch" | "payload_mismatch" | "already_decided" }

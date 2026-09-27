@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { makeEvent, type EventEnvelope, type JarvisEventType } from "@jarvis/protocol";
+import { redactDeep } from "@jarvis/security";
 
 export class WorkstationJournal {
   private sequence = 0;
@@ -30,7 +31,7 @@ export class WorkstationJournal {
       task_id: (input.task_id ?? null) as never,
       session_id: (input.session_id ?? null) as never,
       sequence: this.sequence + 1,
-      payload: input.payload,
+      payload: (redactDeep(input.payload ?? {}) ?? {}) as Record<string, unknown>,
       source: input.source,
     });
     this.append(envelope);
