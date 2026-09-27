@@ -19,10 +19,12 @@ beforeEach(async () => {
   dir = mkdtempSync(join(tmpdir(), "jvs-w07-"));
   repoPath = join(dir, "scratch");
   await execFileAsync("git", ["init", "-b", "main", repoPath]);
+  await execFileAsync("git", ["-C", repoPath, "config", "user.name", "Gate Test"]);
+  await execFileAsync("git", ["-C", repoPath, "config", "user.email", "gate@test.local"]);
   const fs = await import("node:fs");
   fs.writeFileSync(join(repoPath, "README.md"), "# scratch\n");
   await execFileAsync("git", ["-C", repoPath, "add", "."]);
-  await execFileAsync("git", ["-C", repoPath, "-c", "user.name=T", "-c", "user.email=t@t.test", "commit", "-m", "init"]);
+  await execFileAsync("git", ["-C", repoPath, "commit", "-m", "init"]);
   audit = new AuditJournal(auditPath(dir));
   gate = new ExecutionGate({ audit });
 });
@@ -64,7 +66,7 @@ describe("WEEK-07 exit test: the s118 policy table enforced in a REAL execution 
     await execFileAsync("git", ["-C", repoPath, "add", "."]);
 
     const review = await gate.review(req(["git", "commit", "-m", "feat: demo"]), ctx);
-    expect(review.kind).toBe("approval_required");
+    expect(review.kind, "expected approval_required").toBe("approval_required");
     if (review.kind !== "approval_required") return;
     expect(review.approval.action_hash).toMatch(/^[0-9a-f]{64}$/);
     expect(review.approval.status).toBe("pending");
@@ -72,7 +74,7 @@ describe("WEEK-07 exit test: the s118 policy table enforced in a REAL execution 
 
     const approved = { ...review.approval, status: "granted" as const };
     const out = await gate.executeAfterApproval(approved, req(["git", "commit", "-m", "feat: demo"]), ctx);
-    expect(out.ok).toBe(true);
+    expect(out.ok, `refusalReason: ${out.refusalReason ?? "none"} | stderr: ${out.stderr}`).toBe(true);
     const log = await execFileAsync("git", ["-C", repoPath, "log", "--oneline"]);
     expect(log.stdout).toContain("feat: demo");
     expect(auditTrail()).toContain("action_executed:ALLOW");
@@ -101,10 +103,15 @@ describe("WEEK-07 exit test: the s118 policy table enforced in a REAL execution 
     if (review.kind !== "approval_required") throw new Error("expected approval_required");
     const approved = { ...review.approval, status: "granted" as const };
     const first = await gate.executeAfterApproval(approved, req(["git", "commit", "-m", "first"]), ctx);
-    expect(first.ok).toBe(true);
+    expect(first.ok, `refusalReason: ${first.refusalReason ?? "none"} | stderr: ${first.stderr}`).toBe(true);
+    expect(approved.status).toBe("consumed");
     const second = await gate.executeAfterApproval(approved, req(["git", "commit", "-m", "first"]), ctx);
     expect(second.ok).toBe(false);
-    expect(second.refusalReason).toContain("already executed");
+    expect(second.refusalReason).toContain("consumed");
+    const copy = { ...approved, status: "granted" as const };
+    const third = await gate.executeAfterApproval(copy, req(["git", "commit", "-m", "first"]), ctx);
+    expect(third.ok).toBe(false);
+    expect(third.refusalReason).toContain("already executed");
   });
 
   it("expired approvals never execute", async () => {
@@ -144,6 +151,61 @@ describe("WEEK-07 exit test: the s118 policy table enforced in a REAL execution 
   it("unmatched commands default to APPROVAL_REQUIRED, never silent allow (ADR 0003)", async () => {
     const review = await gate.review(req(["unknown-tool-xyz", "--flag"]), ctx);
     expect(review.kind).toBe("approval_required");
+  });
+
+  it("wrong actor cannot execute someone else's approval (context binding, s58)", async () => {
+    const fs = await import("node:fs");
+    fs.writeFileSync(join(repoPath, "B.md"), "b\n");
+    await execFileAsync("git", ["-C", repoPath, "add", "."]);
+    const review = await gate.review(req(["git", "commit", "-m", "stolen"]), ctx);
+    if (review.kind !== "approval_required") throw new Error("expected approval_required");
+    const approved = { ...review.approval, status: "granted" as const };
+    const attacker: GateContext = { ...ctx, actor: "usr_attacker" };
+    const out = await gate.executeAfterApproval(approved, req(["git", "commit", "-m", "stolen"]), attacker);
+    expect(out.ok).toBe(false);
+    expect(out.refusalReason).toContain("context_mismatch");
+    const log = await execFileAsync("git", ["-C", repoPath, "log", "--oneline"]);
+    expect(log.stdout).not.toContain("stolen");
+  });
+
+  it("policy-version drift between approval and execution is rejected", async () => {
+    const fs = await import("node:fs");
+    fs.writeFileSync(join(repoPath, "C.md"), "c\n");
+    await execFileAsync("git", ["-C", repoPath, "add", "."]);
+    const review = await gate.review(req(["git", "commit", "-m", "drift"]), ctx);
+    if (review.kind !== "approval_required") throw new Error("expected approval_required");
+    const approved = { ...review.approval, status: "granted" as const };
+    const newPolicy: GateContext = { ...ctx, policyVersion: "2" };
+    const out = await gate.executeAfterApproval(approved, req(["git", "commit", "-m", "drift"]), newPolicy);
+    expect(out.ok).toBe(false);
+    expect(out.refusalReason).toContain("context_mismatch");
+  });
+
+  it("a consumed approval can never execute again, even from a fresh gate (state-based, not just in-memory)", async () => {
+    const fs = await import("node:fs");
+    fs.writeFileSync(join(repoPath, "D.md"), "d\n");
+    await execFileAsync("git", ["-C", repoPath, "add", "."]);
+    const review = await gate.review(req(["git", "commit", "-m", "once"]), ctx);
+    if (review.kind !== "approval_required") throw new Error("expected approval_required");
+    const approved = { ...review.approval, status: "granted" as const };
+    await gate.executeAfterApproval(approved, req(["git", "commit", "-m", "once"]), ctx);
+    const freshGate = new ExecutionGate({ audit });
+    const out = await freshGate.executeAfterApproval(approved, req(["git", "commit", "-m", "once"]), ctx);
+    expect(out.ok).toBe(false);
+    expect(out.refusalReason).toContain("consumed");
+  });
+
+  it("a FAILED execution also consumes the approval - retries require fresh approval (safe default)", async () => {
+    const review = await gate.review(req(["git", "commit", "-m", "nothing-staged"]), ctx);
+    if (review.kind !== "approval_required") throw new Error("expected approval_required");
+    const approved = { ...review.approval, status: "granted" as const };
+    const out = await gate.executeAfterApproval(approved, req(["git", "commit", "-m", "nothing-staged"]), ctx);
+    expect(out.ok).toBe(false);
+    expect(out.exitCode).not.toBe(0);
+    expect(approved.status).toBe("consumed");
+    const retry = await gate.executeAfterApproval(approved, req(["git", "commit", "-m", "nothing-staged"]), ctx);
+    expect(retry.ok).toBe(false);
+    expect(retry.refusalReason).toContain("consumed");
   });
 });
 

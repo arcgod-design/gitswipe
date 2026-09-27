@@ -1,6 +1,8 @@
 # WEEK-07 — Security integration: policy on the exec path, credential broker, approvals, audit, redaction
 
 > Exit test: the contract §118 policy table is enforced in a real execution path; approval replay and stale/expired approvals are rejected; no secret appears in any log, journal, diff, or PR body; every consequential action produces an audit record.
+>
+> **STATUS: ✅ DONE 2026-09-24** — `@jarvis/security`: ExecutionGate (the choke point — allowed commands really execute, force-push denied+audited, gated commits execute after bound approvals, forgery/replay/expiry refused, secret paths + sandbox denied), CredentialBroker (lease→redeem, single-use, action-bound, hashes-only audit), AuditJournal (append-only, restart continuation), redaction (11 secret families, wired into WorkstationJournal — live-proofed: seeded secrets never touch disk). Protocol: `verifyGrantedApproval` (execution vs decision authorization, §162). 21 security tests incl. real execution paths.
 
 ## Scope
 

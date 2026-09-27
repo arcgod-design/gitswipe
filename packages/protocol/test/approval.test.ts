@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { makeApprovalRequest, verifyApprovalBinding, canonicalJson, hashAction } from "../src/approval.js";
+import { makeApprovalRequest, verifyApprovalBinding, verifyGrantedApproval, canonicalJson, hashAction } from "../src/approval.js";
 
 const input = {
   user_id: "usr_1",
@@ -63,5 +63,29 @@ describe("approvals", () => {
       action_payload: input.action_payload,
     });
     expect(result).toEqual({ ok: false, reason: "already_decided" });
+  });
+
+  it("verifyGrantedApproval: granted+matching+context executes; every drift has a distinct reason", async () => {
+    const approval = await makeApprovalRequest(input);
+    const granted = { ...approval, status: "granted" as const };
+    const action = input.action;
+    const payload = input.action_payload;
+
+    expect(await verifyGrantedApproval({ approval: granted, action, action_payload: payload }, { actor: input.user_id, sessionId: input.session_id, taskId: input.task_id, policyVersion: input.policy_version })).toEqual({ ok: true });
+
+    expect(await verifyGrantedApproval({ approval: granted, action, action_payload: payload }, { actor: "usr_someone_else" })).toEqual({ ok: false, reason: "context_mismatch" });
+    expect(await verifyGrantedApproval({ approval: granted, action, action_payload: payload }, { policyVersion: "2" })).toEqual({ ok: false, reason: "context_mismatch" });
+
+    const consumed = { ...granted, status: "consumed" as const };
+    expect(await verifyGrantedApproval({ approval: consumed, action, action_payload: payload })).toEqual({ ok: false, reason: "consumed" });
+
+    const pending = { ...granted, status: "pending" as const };
+    expect(await verifyGrantedApproval({ approval: pending, action, action_payload: payload })).toEqual({ ok: false, reason: "not_granted" });
+
+    const expired = { ...granted, expires_at: new Date(Date.now() - 1).toISOString() };
+    expect(await verifyGrantedApproval({ approval: expired, action, action_payload: payload })).toEqual({ ok: false, reason: "expired" });
+
+    expect(await verifyGrantedApproval({ approval: granted, action: "different action", action_payload: payload })).toEqual({ ok: false, reason: "action_mismatch" });
+    expect(await verifyGrantedApproval({ approval: granted, action, action_payload: { tampered: true } })).toEqual({ ok: false, reason: "payload_mismatch" });
   });
 });

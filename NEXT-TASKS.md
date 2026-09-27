@@ -11,10 +11,10 @@
 | WEEK-02 | GitHub auth + ingestion | ✅ DONE (2026-09-24; live smoke pending user token) |
 | WEEK-03 | Discovery feed + swipes + skill graph v0 | ✅ DONE (2026-09-24) |
 | WEEK-04 | AI opportunity engine + reference mode + radar | ✅ DONE (2026-09-24) |
-| WEEK-05 | Workstation daemon v1 (identity/pairing/transport/journal) | ✅ DONE (2026-09-24; 129/129 dev tests + live cross-process pair verification) |
-| WEEK-06 | AgentGateway + OpenCode adapter + worktrees + PR lifecycle | NEXT — current |
-| WEEK-07 | Security integration (policy on exec path, broker, approvals, audit) | PENDING |
-| WEEK-08 | Web UI (taste-skill pass) + Puter optional auth | PENDING |
+| WEEK-05 | Workstation daemon v1 (identity/pairing/transport/journal) | ✅ DONE (2026-09-24; live cross-process pair verification) |
+| WEEK-06 | AgentGateway + OpenCode adapter + worktrees + PR lifecycle | 🔶 PARTIAL (2026-09-24) — deterministic core done (13 tests, real worktrees); live OpenCode tail + PR watch loop open on U5 (BYOK key) |
+| WEEK-07 | Security integration (policy on exec path, broker, approvals, audit) | ✅ DONE (2026-09-24; §118 enforced in real execution paths, live redaction proof, 21 tests) |
+| WEEK-08 | Web UI (taste-skill pass) + Puter optional auth | NEXT — current |
 | WEEK-09 | Android (Capacitor, notifications, offline, APK) | PENDING |
 | WEEK-10 | Hardening (recovery, security fixtures, backpressure) | PENDING |
 | WEEK-11 | Packaging + CI/CD + docs complete | PENDING |
@@ -63,16 +63,35 @@
 | D5 | Reference mode: separate WORK vs REFERENCE feeds, explicit relevance reasons (§12, §169) | ✅ DONE | no-reason refs filtered entirely |
 | D6 | Project radar foundations: registered projects, radar item types (§13) | ✅ DONE | project candidates + TODO scanner + repo-scoped dependabot advisories (source links, never invented) |
 
-## WEEK-05 task list (dev ladder — the mvp branch pulls E3/E4/E5 forward in minimal form per docs/MVP-PLAN.md, in parallel)
+## WEEK-06 task list (deterministic core ✅ DONE 2026-09-24; live tail open)
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| E1 | Daemon as a long-running process: config precedence (§116), structured logs, `serve` becomes real | TODO | replaces the honest placeholder |
-| E2 | Device identity: durable keypair + id; short-lived pairing codes → key exchange → revocable identities (§23) | TODO | pairing code never becomes the credential |
-| E3 | Transport v1: LocalLoopback + LAN behind TransportProvider; outbound-only; versioned handshake `jarvis-workstation/1.0` (§24/§107) | TODO | |
-| E4 | Event journal: append-only JSONL, monotonic sequence, replay-from-cursor + snapshot-on-gap (§120/§121) | TODO | protocol envelope from WEEK-00 |
-| E5 | Localhost API: authenticated loopback session token, CORS/origin locked (§148/§149) | TODO | |
-| E6 | Health report + heartbeats (§88/§195) + task queue durability (§111/§112) | TODO | |
+| Core | AgentAdapter contract + session-title convention + MockAgentAdapter (state-machine-legal) + AgentGateway (approval binding, follow-up, pause/resume, stop) | ✅ DONE | `@jarvis/agents`; 13 tests; the protocol state machine caught the RUNNING→COMPLETED skip a second time |
+| Core | WorktreeManager + CheckpointStore + OpenCodeAdapter conventions (`opencode run --dir/--title/--model`, takeover note) | ✅ DONE | per ADR 0008 + user research addendum |
+| G-live | Wire OpenCodeAdapter runtime paths + session resume follow-ups against a live `opencode` server | BLOCKED(U5) | needs a machine with opencode + BYOK key; runtime paths stay PROTO and refuse to pretend |
+| G-pr | PR-lifecycle watch loop (gh CLI: CI state, mergeable, CodeRabbit resolution queue, maintainer-blocked ledger) | TODO | after G-live |
+
+## WEEK-07 task list (✅ DONE 2026-09-24 — 26 security tests + live proofs; CI-verified on Linux after the fixture-identity fix)
+
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| F1 | Policy engine on the exec path | ✅ DONE | `ExecutionGate`: §118 in real execution; ALLOW really runs, DENY audited+blocked |
+| F2 | Credential broker | ✅ DONE | lease→redeem; token vended once, action-bound; hashes-only audit |
+| F3 | Approval queue replay protection | ✅ DONE | `verifyGrantedApproval` (§162) with execution-context binding (§58: actor/session/task/policy-version); explicit `consumed` state — state-based replay protection; forgery/replay/expiry/drift/context all refused; failed executions also consume |
+| F4 | Audit journal | ✅ DONE | append-only, monotonic, restart continuation (§114) |
+| F5 | Redaction | ✅ DONE | 11 families, nested payloads, withhold ≥2; wired into WorkstationJournal (live-proofed); fixtures built from fragments (secret-scanner-safe) |
+| F-ci | CI-green on Linux runners | ✅ DONE | root cause: fixture repo lacked local git identity (gate-executed commits died exit 128 on identity-less runners); fixtures now self-contained; assertion diagnostics added |
+
+## WEEK-08 task list (current)
+
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| H1 | **Taste-skill + ui-ux-pro-max design pass** for the production UI (all screens) | TODO | mandatory per PROJECT-CORE #15; no UI code before the pass |
+| H2 | Feed/discover screens against the real daemon API (cursor replay client) | TODO | |
+| H3 | Session supervision screen (event stream, approvals, takeover w/ resume command) | TODO | |
+| H4 | BYOK settings, GitHub connect, security preferences screens | TODO | |
+| H5 | Puter optional auth path (client-side puter.js; core never requires it) | TODO | verify current docs at build time |
 
 ## MVP track (parallel — branch `mvp`, plan in docs/MVP-PLAN.md, locked PROJECT-CORE #23)
 
