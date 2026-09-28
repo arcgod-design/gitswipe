@@ -64,6 +64,6 @@ The workstation maintains, per repo folder, a ledger of: issue → branch → PR
 ## 8. Where this is enforced
 
 - Task contract composition embeds §1–§5 into the contract's `git_workflow` block (`@jarvis/protocol`).
-- The workstation policy engine (WEEK-07) enforces deny-rules (force-push, remote change, protected push) at execution time.
-- The worktree manager (WEEK-06) creates folders/branches per §1–§3 — the agent never creates its own branch topology.
-- PR lifecycle handling (§6) is the agent-followup loop: workstation watches PR state via `gh` and queues follow-up work per the table above; maintainer-blocked → notify.
+- The workstation policy engine (WEEK-07, now shipped as `@jarvis/security` ExecutionGate) enforces deny-rules (force-push, remote change, protected push) at execution time — with the full §118 command table, secret-path blocks, and sandbox-escape denial. Approvals bind actor/session/task/policy-version at execution (§58); `consumed` state makes replay impossible even across gate instances.
+- The worktree manager (`@jarvis/agents` WorktreeManager — shipped) creates folders/branches per §1–§3: one issue = one worktree under `<Repo>/issue-N/`, branch `feat/issue-N-<slug>` / `feat/jarvis-<id>-<slug>`, `git worktree add -b` — the agent never creates its own branch topology. Pre-push gate runner (`runPrepushGates`) executes the repo's lint/test suite inside the worktree before any push leaves the machine.
+- PR lifecycle handling (§6) is the agent-followup loop: workstation watches PR state via `gh` and queues follow-up work per the table above; maintainer-blocked → ledger (`writeLedgerEntry`) + user notification, never silent retry. This is the remaining WEEK-06 open item.

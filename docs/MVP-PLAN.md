@@ -32,4 +32,4 @@
 
 ## Merge rule (ADR 0007)
 
-MVP code merges into dev when a piece reaches production grade (daemon server → dev in WEEK-05; mock agent → dev in WEEK-06; UI screens → dev in WEEK-08). The mvp branch stays demoable at all times.
+MVP code merges into dev when a piece reaches production grade. **Status:** the daemon demo server (M1) is a parallel implementation of the same patterns the workstation now has in `@jarvis/security` + `apps/daemon/src/workstation/` — it stays demo-shaped on mvp. The mock agent (M2) was absorbed into `@jarvis/agents` as MockAgentAdapter on dev. The web UI (M3) is the WEEK-08 production UI's design-system seed — it merges to dev when H1 (design pass) + H2–H4 (production screens against the real daemon API) replace the demo-fixed screens. The mvp branch stays demoable at all times.

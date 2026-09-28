@@ -1,0 +1,10 @@
+{
+  "date": "2026-09-24 (session 15)",
+  "in_flight_week": "docs sync (between weeks)",
+  "week_status": "all stale docs fixed (ARCHITECTURE layout had 3/7 packages, PROJECT-CORE map same, REPO-WORK-CONVENTIONS enforcement section stale, MVP-PLAN merge rule stale, standing items refined)",
+  "verified": ["no code changed this session - docs only; suite state unchanged (168/168, typecheck clean per last run)"],
+  "files_touched": ["docs/ARCHITECTURE.md", "PROJECT-CORE.md", "docs/REPO-WORK-CONVENTIONS.md", "docs/MVP-PLAN.md", "CLAUDE.md", "NEXT-TASKS.md", "USER-THING-TO-DO.md", "README.md", "SESSION-STATE.md"],
+  "decisions_locked": [],
+  "next_step": "WEEK-08: production web UI on dev - taste-skill + ui-ux-pro-max design pass first (H1), then screens (H2-H4), Puter optional last (H5)",
+  "user_blockers": ["U5 BYOK key (WEEK-06 live tail + provider smoke)", "U5b GitHub PAT (GitHub smoke)", "U2 license (pre-release)", "U8 review parked SUGGESTIONS items"]
+}

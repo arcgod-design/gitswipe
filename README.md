@@ -45,6 +45,7 @@ Requires Node 22+. BYOK keys, when needed for live smoke tests, go in a local `.
 | `PROJECT_STATUS.md` | Honest WORKING/PROTO/ROADMAP ledger |
 | `SESSION-STATE.md` | Where we are right now |
 | `docs/` | VISION, ARCHITECTURE, ROADMAP, REPO-WORK-CONVENTIONS, MVP-PLAN, source specs |
+| `gitresearch.md` | External-repo research index — every proposed repo gets a verdict (USE/PARTIAL/SKIP) + deep dive when earned |
 | `weeks/` | WEEK-00..12 ladder + memory protocol (resume without hallucinations) |
 | `doc-of-journey/` | Daily logs, ADRs 0001–0008, error/tactic catalogs |
 | `packages/` | protocol, policy, providers, github, discovery, agents, security |

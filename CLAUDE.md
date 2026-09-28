@@ -10,6 +10,7 @@
 - GitHub repo: `arcgod-design/gitswipe`
 - Implementation contract: `docs/source/JARVIS_PRODUCTION_BUILD_PROMPT.md` (216 sections — the binding spec)
 - Decision history that produced it: `docs/source/github.md`
+- External-repo research index: `gitresearch.md` (every proposed repo gets a verdict row there; deep dives only when earned)
 
 ## Read these files in order before doing anything else
 

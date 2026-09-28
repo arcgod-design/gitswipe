@@ -106,9 +106,12 @@
 
 | # | Item | Owner | Blocks |
 |---|------|-------|--------|
-| U1 | ~~Confirm product name~~ — RESOLVED: **GitSwipe** (ADR 0005) | — | — |
+| U1 | ~~Confirm product name~~ — **RESOLVED: GitSwipe** (ADR 0005) | — | — |
 | U2 | License choice (MIT vs Apache-2.0) | USER | any public release (WEEK-11/12) |
-| U3 | GitHub App/OAuth creds | USER | WEEK-02 live smoke (fixtures don't need it) |
-| U4 | Puter app registration | USER | WEEK-08 optional path only |
-| U5 | BYOK test keys into local `.env` (never paste into chats) | USER | WEEK-01 live smoke (mocks don't need it) |
-| U7 | Designate workspace root folder for dispatched-task worktrees | USER | WEEK-06 setup |
+| U3 | ~~GitHub OAuth creds~~ — **superseded by ADR 0006** (fine-grained PAT is v1 auth) | — | — |
+| U4 | Puter app registration (app UID + origin) | USER | WEEK-08 optional path only |
+| U5 | **BYOK test key** (any provider) in local `.env` or OS store — never pasted into a chat | USER | WEEK-01 live provider smoke + **WEEK-06 live OpenCode tail** |
+| U5b | **GitHub fine-grained PAT** via `jarvisd secret set github:token` | USER | live GitHub smoke (fixtures/tests don't need it) |
+| U6 | Android SDK path configured (WEEK-09 Capacitor builds) | USER | WEEK-09 |
+| U7 | Designate the contribution workspace root folder (like ssoc, but GitSwipe-owned) | USER | WEEK-06 setup |
+| U8 | Review the parked SUGGESTIONS.md items (semgrep gate, worktree tool manifest, CLI-Anything wishlist source, patchwork/OpenHands adapters) — promote or kill each | USER | post-v1 planning |
