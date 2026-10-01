@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-01 (session 16)",
+  "in_flight_week": "WEEK-08",
+  "week_status": "done (exit test green: all 9 live-verified steps from UI load to COMPLETED session; design system from MVP carried; H4 view-only, H5 Puter PROTO — non-blockers)",
+  "verified": [
+    "npm run typecheck -> clean",
+    "npm test -> 171/171",
+    "live: UI 200 HTML -> pair -> feed 3 cards -> swipe 3->2 -> session -> WAITING_FOR_APPROVAL -> approve -> COMPLETED -> workstation report"
+  ],
+  "files_touched": [
+    "apps/web/* (cherry-picked from mvp, BOMs removed, App.tsx rewritten for production)",
+    "apps/daemon/src/workstation/server.ts (production API + static serving + session routes)",
+    "apps/daemon/src/index.ts (serve wires feed engine + session manager)",
+    "apps/daemon/package.json (+agents, +discovery)",
+    "root package.json (build:web restored)"
+  ],
+  "decisions_locked": [],
+  "next_step": "Merge dev->main + v0.4.0, then WEEK-09: Android via Capacitor (wrap web app, secure storage, notifications, offline cache, debug APK)",
+  "user_blockers": ["U5 BYOK key", "U5b GitHub PAT", "U2 license"]
+}

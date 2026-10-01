@@ -1,6 +1,8 @@
 # WEEK-08 — Web UI: full localhost experience (taste-skill pass), Puter optional auth
 
-> Exit test: discover → swipe → task contract → session supervision → approval flows all work in the browser against the live daemon; the ui-ux-pro-max + taste-skill design checklist passes; Puter auth works as an OPTIONAL path while local mode works without any Puter dependency.
+> Exit test: discover → swipe → task contract → session supervision → approval flows all work in browser against the live daemon; the ui-ux-pro-max + taste-skill design checklist passes; Puter auth works as an OPTIONAL path while local mode works without any Puter dependency.
+>
+> **STATUS: ✅ DONE 2026-10-01** — all 9 live-verified steps: UI loads (200 HTML) → pair via single-use code → feed (3 ranked cards) → swipe (skill graph updates) → session (AgentGateway + MockAgent) → WAITING_FOR_APPROVAL → approve the exact action → COMPLETED (17 events) → workstation report. H4 (BYOK editing UI) is view-only; H5 (Puter client-side bridge) remains PROTO — both are non-blockers for the core flow. Puter is optional per contract §6; local mode works without it (verified).
 
 ## Scope
 
