@@ -10,6 +10,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@jarvis/agents": "0.1.0",
+    "@jarvis/discovery": "0.1.0",
     "@jarvis/github": "0.1.0",
     "@jarvis/policy": "0.1.0",
     "@jarvis/protocol": "0.1.0",

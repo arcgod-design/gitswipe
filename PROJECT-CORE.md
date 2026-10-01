@@ -42,12 +42,15 @@ Not "an AI chatbot for GitHub". The core loop (contract §214): DISCOVER → UND
 
 ## Architecture map (high level)
 
-- `packages/protocol` — domain contracts: ids, event envelope, session/task state machines, task contract (incl. `git_workflow` block per REPO-WORK-CONVENTIONS), opportunities, approvals+hashing, policy types, agent gateway interfaces, workstation handshake
+- `packages/protocol` — domain contracts: ids, event envelope, session/task state machines, task contract (incl. `git_workflow` block per REPO-WORK-CONVENTIONS), opportunities/swipes/evidence, approvals + action hashing + **two authorization stages** (decision vs execution, §162), policy types, agent gateway interfaces, workstation handshake
 - `packages/policy` — deterministic rule engine: evaluate/classify commands/paths + default safe ruleset (contract §26)
-- `packages/providers` — `AIProvider` abstraction + OpenAI-compatible / Anthropic adapters + registry presets + Puter bridge shape + model routing (contract §7)
-- `apps/daemon` — Jarvis Workstation entrypoint (grows per weeks/WEEK-05+)
-- `apps/web` — React UI (WEEK-08, taste-skill pass), Capacitor wrap in WEEK-09
-- Git work pattern for all dispatched tasks: `docs/REPO-WORK-CONVENTIONS.md` (ADR 0004)
+- `packages/providers` — `AIProvider` abstraction + OpenAI-compatible / Anthropic adapters + registry presets + model routing + authorized-only failover + SecretStore (DPAPI/keychain/libsecret) + key resolution
+- `packages/github` — GitHubClient (pagination, ETag, backoff, rate-budget) + fine-grained-PAT auth (ADR 0006) + zod-normalized entities + stale detection + JSONL candidate store + checkIssueState revalidation
+- `packages/discovery` — the swipe-feed engine: candidates, ranker + skill graph + diversity, dedup classifier, finding pipeline + evidence + confidence gates, reference mode, project radar, analysis prompts w/ untrusted-content framing
+- `packages/agents` — AgentGateway (§19 state machine, approval binding, follow-up, pause/resume), MockAgentAdapter (deterministic, state-machine-legal), OpenCodeAdapter (dispatch conventions + PROTO runtime), WorktreeManager per REPO-WORK-CONVENTIONS, CheckpointStore
+- `packages/security` — ExecutionGate (§118 in real execution paths), CredentialBroker (§27 lease→redeem), AuditJournal (§114), redaction (§74 — 11 families, wired into WorkstationJournal)
+- `apps/daemon` — the workstation: serve / pair / devices / health / github check / secret (DPAPI-backed) / demo (pitch demo on mvp)
+- `apps/web` — React UI (mvp branch; merges to dev in WEEK-08 with the mandatory design pass)
 - Full system diagram: `docs/ARCHITECTURE.md`
 
 ## Open questions (blocking nothing, answer when ready)

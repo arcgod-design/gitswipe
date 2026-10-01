@@ -8,7 +8,9 @@
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "vitest run",
-    "daemon": "tsx apps/daemon/src/index.ts"
+    "daemon": "tsx apps/daemon/src/index.ts",
+    "demo": "tsx apps/daemon/src/index.ts demo",
+    "build:web": "npm run build -w @jarvis/web"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

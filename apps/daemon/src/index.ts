@@ -172,13 +172,17 @@ async function serveCommand(): Promise<void> {
   const { WorkstationJournal, journalPath } = await import("./workstation/journal.js");
   const { DurableQueue, queuePath } = await import("./workstation/queue.js");
   const { gatherHealth } = await import("./workstation/health.js");
-  const { startWorkstationServer } = await import("./workstation/server.js");
+  const server = await import("./workstation/server.js");
+  const startWorkstationServer = server.startWorkstationServer;
 
   const config = loadConfig();
   const identity = loadOrCreateIdentity(config.dataDir);
   const pairing = new PairingService(config.dataDir, config.pairingTtlMs);
   const journal = new WorkstationJournal(journalPath(config.dataDir));
   const queue = new DurableQueue(queuePath(config.dataDir));
+
+  const feedEngine = await buildProductionFeed(config.dataDir);
+  const sessionManager = await buildProductionSessions(config.dataDir, journal, identity);
 
   const handle = await startWorkstationServer({
     config,
@@ -187,6 +191,8 @@ async function serveCommand(): Promise<void> {
     journal,
     queue,
     health: () => gatherHealth(config.dataDir),
+    feedEngine,
+    sessionManager,
   });
 
   process.stdout.write(
@@ -194,6 +200,7 @@ async function serveCommand(): Promise<void> {
       "",
       `  GitSwipe workstation — serving on ${config.bind}:${config.port} (${identity.deviceId})`,
       `  journal: ${journal.latest()} events recovered | queue: ${queue.list().length} tasks recovered`,
+      `  UI: ${feedEngine !== undefined ? "feed + sessions wired" : "feed engine unavailable"}`,
       "",
       "  Pair a device: jarvisd pair   then POST /api/pair from the client.",
       "  Stop with Ctrl+C.",
@@ -289,4 +296,113 @@ switch (arg) {
       ].join("\n"),
     );
     break;
+}
+
+async function buildProductionFeed(dataDir: string): Promise<import("./workstation/server.js").ProductionFeedEngine | undefined> {
+  try {
+    const discovery = await import("@jarvis/discovery");
+    const buildCandidate = discovery.buildCandidate;
+    const rankFeed = discovery.rankFeed;
+    const buildFeedPage = discovery.buildFeedPage;
+    const applySwipe = discovery.applySwipe;
+    const emptyGraph = discovery.emptyGraph;
+    const seedFromLanguages = discovery.seedFromLanguages;
+    const JsonlSwipeStore = discovery.JsonlSwipeStore;
+    const { join } = await import("node:path");
+
+    const swipeStore = new JsonlSwipeStore(join(dataDir, "swipes.jsonl"));
+    const candidates = buildFixtureCandidates(buildCandidate);
+    let graph = seedFromLanguages(emptyGraph(), ["TypeScript", "TypeScript", "Python"]);
+    const candidateByKey = new Map(candidates.map((c) => [c.key, c]));
+
+    return {
+      feed() {
+        const outcome = rankFeed(candidates, graph, swipeStore.readAll());
+        return { feed: outcome.feed.map(discovery.toFeedCard), whyNot: outcome.whyNot.map(discovery.toFeedCard), generatedAt: new Date().toISOString() };
+      },
+      swipe(key: string, action: string) {
+        const candidate = candidateByKey.get(key);
+        if (candidate !== undefined) {
+          swipeStore.append({ candidate_key: key, action: action as never, at: new Date().toISOString() });
+          graph = applySwipe(graph, { candidate_key: key, action: action as never, at: new Date().toISOString() }, candidate.language, candidate.labels);
+        }
+        const outcome = rankFeed(candidates, graph, swipeStore.readAll());
+        return { feed: outcome.feed.map(discovery.toFeedCard), whyNot: outcome.whyNot.map(discovery.toFeedCard), generatedAt: new Date().toISOString() };
+      },
+      reset() {
+        swipeStore.replaceAll([]);
+        graph = seedFromLanguages(emptyGraph(), ["TypeScript", "TypeScript", "Python"]);
+      },
+    };
+  } catch (err) {
+    process.stderr.write(`feed engine unavailable: ${err instanceof Error ? err.message : String(err)}\n`);
+    return undefined;
+  }
+}
+
+function buildFixtureCandidates(buildCandidate: (item: import("@jarvis/github").NormalizedIssue, repo: import("@jarvis/github").NormalizedRepository | null) => import("@jarvis/discovery").Candidate): import("@jarvis/discovery").Candidate[] {
+  const now = new Date().toISOString();
+  const issues: import("@jarvis/github").NormalizedIssue[] = [
+    { kind: "issue", repo_full_name: "demo/acme-api-server", number: 301, state: "open", title: "Add exponential backoff to webhook retries", body: "Webhook delivery retries immediately on failure. Acceptance: configurable max retries, exponential delay, tests for the retry loop.", labels: ["bug", "help wanted"], created_at: now, updated_at: now, closed_at: null, comments: 3, html_url: "https://github.com/demo/acme-api-server/issues/301", stale: false },
+    { kind: "issue", repo_full_name: "demo/orbit-dashboard", number: 501, state: "open", title: "Dashboard charts flash empty state on slow networks", body: "On 3G the charts mount before data arrives. Add skeleton loaders with a minimum display window.", labels: ["bug", "frontend", "help wanted"], created_at: now, updated_at: now, closed_at: null, comments: 2, html_url: "https://github.com/demo/orbit-dashboard/issues/501", stale: false },
+    { kind: "issue", repo_full_name: "demo/rustkube", number: 71, state: "open", title: "Connection pool leaks sockets on forced disconnect", body: "Forced TCP disconnects leave sockets in the pool forever. Add a liveness probe with a reaper task.", labels: ["bug", "networking", "help wanted"], created_at: now, updated_at: now, closed_at: null, comments: 1, html_url: "https://github.com/demo/rustkube/issues/71", stale: true },
+  ];
+  const repos = new Map<string, import("@jarvis/github").NormalizedRepository>([
+    ["demo/acme-api-server", { id: 9001, owner: "demo", name: "acme-api-server", full_name: "demo/acme-api-server", default_branch: "main", description: null, language: "Python", topics: ["backend", "api"], stargazers_count: 340, open_issues_count: 12, archived: false, license_spdx: "MIT", pushed_at: now, html_url: "https://github.com/demo/acme-api-server" }],
+    ["demo/orbit-dashboard", { id: 9002, owner: "demo", name: "orbit-dashboard", full_name: "demo/orbit-dashboard", default_branch: "main", description: null, language: "TypeScript", topics: ["frontend", "react"], stargazers_count: 812, open_issues_count: 27, archived: false, license_spdx: "MIT", pushed_at: now, html_url: "https://github.com/demo/orbit-dashboard" }],
+    ["demo/rustkube", { id: 9003, owner: "demo", name: "rustkube", full_name: "demo/rustkube", default_branch: "main", description: null, language: "Rust", topics: ["kubernetes", "cli"], stargazers_count: 95, open_issues_count: 5, archived: false, license_spdx: "Apache-2.0", pushed_at: now, html_url: "https://github.com/demo/rustkube" }],
+  ]);
+  return issues.map((item) => buildCandidate(item, repos.get(item.repo_full_name) ?? null));
+}
+
+async function buildProductionSessions(dataDir: string, journal: import("./workstation/journal.js").WorkstationJournal, identity: import("./workstation/identity.js").DeviceIdentity): Promise<import("./workstation/server.js").ProductionSessionManager | undefined> {
+  try {
+    const agents = await import("@jarvis/agents");
+    const discovery = await import("@jarvis/discovery");
+    const { join } = await import("node:path");
+
+    const adapter = new agents.MockAgentAdapter(60);
+    const checkpoints = new agents.CheckpointStore(join(dataDir, "checkpoints"));
+    const candidates = buildFixtureCandidates(discovery.buildCandidate);
+    const candidateByKey = new Map(candidates.map((c) => [c.key, c]));
+
+    const gateway = new agents.AgentGateway({ adapter, journal, checkpoints });
+    type SessionLike = { currentState(): string; pendingApproval(): unknown; decide(approve: boolean): Promise<{ ok: boolean; reason?: string }> };
+    const sessions = new Map<string, SessionLike>();
+
+    return {
+      async createSession(candidateKey: string) {
+        const candidate = candidateByKey.get(candidateKey);
+        if (candidate === undefined) {
+          throw new Error(`unknown candidate: ${candidateKey}`);
+        }
+        const slug = candidate.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 40);
+        const session = await gateway.createSession({
+          repository: candidate.repoFullName,
+          branch: `feat/issue-${candidate.number}-${slug}`,
+          worktreePath: join(dataDir, "worktrees", candidate.repoFullName.split("/")[1] ?? "repo", `issue-${candidate.number}`),
+          prompt: candidate.body,
+          validationCommands: ["npm test"],
+          userId: "usr_local",
+          workstationId: identity.deviceId,
+        });
+        const id = session.jarvisSession().jarvis_session_id;
+        sessions.set(id, session);
+        return { sessionId: id, state: session.currentState() };
+      },
+      getSession(id: string) {
+        return sessions.get(id) ?? null;
+      },
+      async decide(id: string, approve: boolean) {
+        const session = sessions.get(id);
+        if (session === undefined) {
+          return { ok: false, reason: "unknown session" };
+        }
+        return session.decide(approve);
+      },
+    };
+  } catch (err) {
+    process.stderr.write(`session manager unavailable: ${err instanceof Error ? err.message : String(err)}\n`);
+    return undefined;
+  }
 }
