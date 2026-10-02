@@ -18,7 +18,7 @@
 | Typed transport errors: hanging endpoint → `[TIMEOUT]`, refused → `[NETWORK_FAILURE]`; malformed SSE lines skipped without killing the stream | `packages/providers` | vitest |
 | Workstation daemon v1: config precedence (§116, loopback default), durable ed25519 identity (corruption detected), disk-backed single-use pairing codes → revocable device registry (tokens hashed at rest; CLI revoke kills live tokens), global-sequence event journal with cursor replay + restart recovery + gap check, durable task queue, health report (§88) | `apps/daemon/src/workstation/` | vitest (13 workstation tests) + live cross-process verification (CLI pair + serve + HTTP pair + authed report + replay 401) |
 | Production localhost API: origin-locked (403 cross-origin), Bearer device-token auth, `/api/pair`, `/api/workstation` (health + capabilities + `jarvis-workstation/1.0` handshake fields), `/api/sessions?from=N`, global SSE tail with disconnect cleanup (§148/§149) | `apps/daemon/src/workstation/server.ts` | vitest + live |
-| CLI: `serve` (real long-running service), `pair` (single-use code), `devices list/revoke` | `apps/daemon/src/index.ts` | live run 2026-09-24 |
+| CLI: `serve` (real long-running service — wires the production feed engine + session manager), `pair` (single-use code), `devices list/revoke` | `apps/daemon/src/index.ts` | live run 2026-10-01 |
 | Agent gateway: AgentAdapter contract + `sessionTitleFor` convention; MockAgentAdapter with a state-machine-legal timeline; AgentGateway (s19 transitions, real action-hash approval binding, follow-up, pause/resume, stop, per-session subscribe) | `packages/agents/src/{adapter,mock-adapter,gateway}.ts` | vitest — full lifecycle E2E on a real scratch git repo (13 tests) |
 | Worktree manager: real git worktrees per REPO-WORK-CONVENTIONS (branch naming `feat/issue-N-slug`/`feat/jarvis-…`, isolation, verify, cleanup, prepush gate runner, ledger); CheckpointStore (§33 phase trail incl. TESTING/REVIEW_READY) | `packages/agents/src/{worktree,checkpoint}.ts` | vitest |
 | OpenCode dispatch conventions: `opencode run --dir/--title/--model` args + takeover note (unified session DB, `opencode session resume`) | `packages/agents/src/opencode.ts` | vitest (args shape); flags re-verified at live-integration time |
@@ -43,7 +43,9 @@
 | Reference mode: explicit reasons only (same language/topic/labels/title overlap), no-reason refs filtered (contract §12/§169) | `packages/discovery/src/reference.ts` | vitest |
 | Project radar: project-scoped candidate items, TODO/FIXME scanner with line numbers, repo-scoped dependabot advisories with source links — never invented (contract §13/§93) | `packages/discovery/src/radar.ts` | vitest |
 | Daemon CLI: `version` / `check` (preflight) / `health` (provider health — honest FAIL + exit 1) / `github check` (token + /user + rate budget) / `secret set|get|list|delete` (DPAPI-backed, masked display) | `apps/daemon` | manual runs 2026-09-24 |
-| Monorepo toolchain: npm workspaces, TS strict, vitest 5, CI workflow | root + `.github/workflows/ci.yml` | `npm run typecheck` + `npm test` green (75/75) |
+| Production web UI: pairing screen (single-use code → device token), feed (swipe cards, keyboard nav, explainable reasons, skeleton loading), session supervision (live per-session SSE stream, approval card with exact push action + DENY/APPROVE, state badge, completed summary), settings (workstation health report); design tokens per ADR 0005 seed (slate-900, green accent, Space Grotesk/DM Sans/JetBrains Mono, phosphor icons) | `apps/web` (React+Vite, builds to `apps/daemon/public`) | live 9-step browser flow 2026-10-01: UI 200 HTML → pair → feed 3 cards → swipe 3→2 → session → WAITING_FOR_APPROVAL → approve → COMPLETED → workstation report |
+| Production feed/session API: `GET /api/feed`, `POST /api/swipe`, `POST /api/feed/reset`, `POST /api/session` (AgentGateway + MockAgent), `GET /api/session/:id`, `GET /api/session/:id/events` (per-session SSE, terminal-state detection), `POST /api/session/:id/approve`; static UI served BEFORE auth (pairing screen is the entry point) | `apps/daemon/src/workstation/server.ts` | live 2026-10-01 + vitest |
+| Monorepo toolchain: npm workspaces, TS strict, vitest 5, CI workflow | root + `.github/workflows/ci.yml` | `npm run typecheck` + `npm test` green (171/171) |
 | Session-resume documentation system (this file + SESSION-STATE + weeks + doc-of-journey) | repo root | n/a — process, verified by use |
 
 ## PROTO
@@ -51,10 +53,10 @@
 | Capability | Where | Why not WORKING yet |
 |---|---|---|
 | macOS Keychain + Linux libsecret secret stores | `packages/providers/src/secret-store.ts` | Code is real but untestable on this Windows machine; first darwin/linux use must be verified live. (Windows DPAPI store IS WORKING.) |
-| Puter client-side AIProvider bridge (injected puter object, chat only) | `packages/providers/src/puter.ts` | Needs the browser puter.js runtime; wired and tested in WEEK-08. Never a daemon-side dependency. |
-| Daemon as a long-running process (identity, pairing, transport, journal) | `apps/daemon` | Skeleton only — WEEK-05 builds it. `serve` explicitly reports not-implemented. |
+| Puter client-side AIProvider bridge (injected puter object, chat only) | `packages/providers/src/puter.ts` | Needs the browser puter.js runtime; WEEK-08 shipped the local UI without it (core flow never requires Puter). Post-v1 polish. Never a daemon-side dependency. |
 | Live provider smoke against real APIs (OpenAI/Ollama/etc.) | — | Needs BYOK key in `.env` or OS store (USER-THING-TO-DO #5). All current tests use local mock servers by design. |
 | Live GitHub smoke (real token → /user → live repo ingest) | `jarvisd github check` path | Needs a fine-grained PAT in the OS store (USER-THING-TO-DO #5/U3). Fixture-driven tests fully green; the live path prints honest no-token failure today. |
+| BYOK provider editing in the settings UI (view-only today: workstation report renders, no add/edit/remove forms) | `apps/web/src/screens/Settings.tsx` | Forms land as WEEK-11 polish; the settings screen itself is WORKING. |
 
 ## ROADMAP (scheduled, contract sections in parens)
 
@@ -64,8 +66,7 @@
 - Workstation daemon v1: device identity, pairing codes, loopback+LAN transport, event journal, health (§22, §23, §107) — WEEK-05
 - AgentGateway + OpenCode adapter (HTTP/SSE → CLI fallback), mock agent, worktrees, follow-up/pause/resume/takeover (§17–§19, §29, §30) — WEEK-06
 - Security integration: policy enforcement on the exec path, credential broker, approval queue + replay protection, audit journal, redaction (§25–§28, §58, §74, §114) — WEEK-07
-- Web UI (taste-skill + ui-ux-pro-max pass): discover/swipe/sessions/approvals, event replay client, Puter auth optional path (§35, §36) — WEEK-08
-- Android via Capacitor: secure storage, notifications, offline cache, debug APK (§38) — WEEK-09
+- Android via Capacitor: secure storage, notifications, offline cache, debug APK (§38) — WEEK-09 (current)
 - Hardening: reconnect/replay E2E, recovery, checkpoints, security fixtures (prompt injection, traversal), backpressure (§21, §32–§34, §62, §196) — WEEK-10
 - Packaging + CI/CD: Windows/macOS/Linux installers, release pipeline, docs complete (§37, §63, §101) — WEEK-11
 - Master acceptance scenario (§215) + release checklist (§207) — WEEK-12

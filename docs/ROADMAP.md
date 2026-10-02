@@ -14,8 +14,8 @@
 | WEEK-05 | Workstation daemon v1: identity, pairing codes, loopback+LAN transport, JSONL event journal, health, localhost API | phone(browser) pairs via code; events replay after reconnect; journal survives restart | ✅ DONE (2026-09-24; live cross-process pair + restart recovery verified) |
 | WEEK-06 | AgentGateway: OpenCode adapter (server HTTP/SSE → CLI fallback), mock agent, session machine wiring, worktrees | mock-agent session lifecycle E2E; OpenCode live session against a scratch repo | 🔶 PARTIAL — deterministic core done (13 tests, real worktrees, CI-verified); live OpenCode tail + PR watch loop open on U5 (BYOK key) |
 | WEEK-07 | Security integration: policy on exec path, credential broker, approval queue + replay protection, audit, redaction | §118 policy table enforced in real exec; approval replay + stale approval rejected; no secret in any log | ✅ DONE (2026-09-24; CI-verified incl. execution-context binding + consumed state after the Linux-runner fix) |
-| WEEK-08 | Web UI: full localhost experience (taste-skill + ui-ux-pro-max mandatory), event replay client, Puter optional auth | discover→swipe→session→approval flows in browser; design checklist passes | NEXT — current |
-| WEEK-09 | Android: Capacitor wrap, secure storage, notifications, offline cache; debug APK builds | debug APK installs, pairs, supervises a session; offline replay works | PENDING |
+| WEEK-08 | Web UI: full localhost experience (taste-skill + ui-ux-pro-max mandatory), event replay client, Puter optional auth | discover→swipe→session→approval flows in browser; design checklist passes | ✅ DONE (2026-10-01; live-verified 9-step flow: UI→pair→feed→swipe→session→approve→COMPLETED; H4 view-only, H5 Puter PROTO — non-blockers) |
+| WEEK-09 | Android: Capacitor wrap, secure storage, notifications, offline cache; debug APK builds | debug APK installs, pairs, supervises a session; offline replay works | NEXT — current |
 | WEEK-10 | Hardening: reconnect/replay E2E, failure recovery, checkpoints, security fixtures, backpressure | §62 failure simulations pass; prompt-injection + traversal fixtures blocked | PENDING |
 | WEEK-11 | Packaging + CI/CD: installers, release pipeline, signed-artifact path, complete docs | CI builds all artifacts; clean-machine install works | PENDING |
 | WEEK-12 | Acceptance: master scenario §215 end-to-end + release checklist §207 | full 35-step scenario passes; v1 tagged | PENDING |
@@ -29,7 +29,7 @@
 - Phase 5 (workstation) → WEEK-05 ✅
 - Phase 6 (agent gateway) → WEEK-06 🔶 (deterministic core done; live tail on U5)
 - Phase 7 (safety) → WEEK-07 ✅
-- Phase 8 (production UX) → WEEK-08 + WEEK-09
+- Phase 8 (production UX) → WEEK-08 ✅ + WEEK-09 (current)
 - Phase 9 (hardening/packaging/acceptance) → WEEK-10–12
 
-Releases: v0.1.0 (engines) · v0.2.0 (workstation daemon) · v0.2.1 (audit hardening) · v0.3.0 (agent gateway + security) · v0.3.1 (CI-green approval-execution fix). Parallel track: the `mvp` branch carries the pitch demo (complete — see docs/MVP-PLAN.md).
+Releases: v0.1.0 (engines) · v0.2.0 (workstation daemon) · v0.2.1 (audit hardening) · v0.3.0 (agent gateway + security) · v0.3.1 (CI-green approval-execution fix) · v0.4.0 (production web UI). Parallel track: the `mvp` branch carries the pitch demo (complete — see docs/MVP-PLAN.md).

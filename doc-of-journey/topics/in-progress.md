@@ -1,6 +1,6 @@
 # topics/in-progress.md — current focus
 
-- **Last completed**: WEEK-07 CI fix (session 13) — gate approval-execution fixed for CI (fixture git identity), plus security upgrades: execution-context binding (§58), explicit `consumed` state, state-based replay protection, failed-execution consumes, secret-scanner-safe fixtures. 168/168 ×2.
-- **Next**: **WEEK-08 — production web UI on dev**. Read `weeks/WEEK-08.md` + the NEXT-TASKS WEEK-08 table (H1–H5) first. H1 is mandatory before any UI code: the taste-skill + ui-ux-pro-max design pass (PROJECT-CORE #15/#23 — no exceptions).
-- **Also open**: WEEK-06 live tail (needs a machine with `opencode` + BYOK key — U5); PR-lifecycle watch loop ships with it.
+- **Last completed**: WEEK-08 production web UI (session 16, 2026-10-01) — live-verified 9-step flow: UI loads → pair → feed (swipe cards) → session (SSE + approval card) → COMPLETED. H4 (BYOK editing) view-only; H5 (Puter bridge) PROTO — non-blockers.
+- **Next**: **WEEK-09 — Android via Capacitor on dev**. Read `weeks/WEEK-09.md` + the NEXT-TASKS WEEK-09 table first. Wraps the existing web app; user has Android Studio configured (USER-THING-TO-DO #6).
+- **Also open**: WEEK-06 live tail (needs a machine with `opencode` + BYOK key — U5); PR-lifecycle watch loop ships with it. H5 Puter client-side bridge (post-v1). H4 BYOK editing forms (WEEK-11 polish).
 - **Pointers**: repo-root `SESSION-STATE.md` (human state), `weeks/state/current.json` (machine state), `NEXT-TASKS.md` (board).
