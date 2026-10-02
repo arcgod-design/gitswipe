@@ -1,6 +1,6 @@
 # doc-of-journey
 
-Informal build log for **Jarvis**. Modeled on the Astro/lattice `doc-of-journey` pattern. Written as we go — honest, detailed, "future-us at 3am" readable.
+Informal build log for **GitSwipe** (internal codename **Jarvis** — package names + wire protocol use it). Modeled on the Astro/lattice `doc-of-journey` pattern. Written as we go — honest, detailed, "future-us at 3am" readable.
 
 ## Structure
 
@@ -18,6 +18,7 @@ doc-of-journey/
 ## Rules
 
 - Start of each working session → new daily file.
+- Known gaps, recorded honestly: sessions 7–9 (mvp demo build: M1 demo server, M2 mock agent + ADR 0008, M3 demo UI) were logged on the `mvp` branch — their daily files live there, not here. Session 11 (WEEK-06 deterministic core) landed on dev but its daily file was never written; the machine-readable record survives in `weeks/state/sessions/2026-09-24-11.json`. Do not backfill from memory — the state files are the primary record.
 - Lock a decision → new numbered file in `decisions/`.
 - Error costing >5 min → append to `topics/errors.md`.
 - Trick that saved time → append to `topics/tactics.md`.

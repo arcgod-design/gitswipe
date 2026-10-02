@@ -12,3 +12,8 @@
 - **vitest upgrade path on npm 10**: vitest@4 crashes npm's arborist (edgesOut bug); 3 → 5 jump installs clean and covers the GHSA-82fw advisory.
 - **`fetchOrThrow` choke point**: wrap every adapter fetch in one helper that maps `TimeoutError`/`AbortError` → TIMEOUT and everything else → NETWORK_FAILURE — adapters stop leaking raw TypeErrors, failover gets clean categories for free.
 - **ASCII-safe test/code titles**: keeps PS regex passes and any encoding mishap from corrupting files; refer to contract sections as `s141` in code, `§141` in docs only.
+
+- **Pairing screen = unauthenticated entry point**: order server middleware as [static files] -> [auth] -> [API routes]. The pairing screen must load without a token; everything under /api/ still requires Bearer auth.
+- **Param vs no-param routes**: check exact-path routes (POST /api/session) BEFORE regex param routes (/api/session/:id) - the regex never matches the bare path, so an exact route nested inside it is dead code.
+- **git show extraction + BOM scan**: after extracting files via git show, always scan for EF BB BF and strip. PowerShell redirect piping adds BOMs silently.
+- **Recount ../ on copy**: relative static-path patterns break when the source file sits at a different directory depth than the file it was copied from. Recount, or anchor from import.meta.url with the verified level count.
