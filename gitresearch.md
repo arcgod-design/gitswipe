@@ -20,6 +20,7 @@
 | ionic-team/capacitor | HTML→APK/iOS wrapper | 15K+ | MIT | ✅ ALREADY LOCKED | WEEK-09 (PROJECT-CORE #6) |
 | nextlevelbuilder/ui-ux-pro-max | Design intelligence skill | 721 | MIT | ✅ ALREADY IN USE | mandatory design pass (PROJECT-CORE #15) |
 | (aws backlog bulk — ~36 repos) | multi-agent frameworks, Claude Code plugins, RN templates, feature flags, binary RE, monetization, SSO | — | — | 🚫 SKIP — ALL | different product shape ("Appy" is an app-builder agency platform, not an agent control plane); per-row reasons in the screening section below |
+| stablyai/orca | Agent-fleet ADE: parallel worktrees + mobile companion + any-CLI-agent, with in-repo self-hostable relay | 84.8K | MIT | ⚠️ COMPETITOR + REFERENCE (patterns only) | relay/push-gateway security shapes → post-v1 remote-door reference; supported-agent list → adapter catalog; positioning sharpened; NO dependency, NO stack change |
 
 > Prior evaluations (munder-difflin, Hermes) were recorded in ADR 0008 + daily logs; this file becomes the single index for future repo research.
 
@@ -137,6 +138,66 @@ Their core thesis is sound and matches what we already believe: CLI is the corre
 | License | ✅ Apache-2.0 | Compatible; irrelevant since we take no code |
 
 **Final: ⚠️ PARTIAL — patterns absorbed (worktree tool manifest → contract §144 wiring idea; conventions noted), dependency refused, post-v1 discovery-source idea parked in SUGGESTIONS.md awaiting user approval.**
+
+---
+
+## stablyai/orca — ⚠️ COMPETITOR + REFERENCE ARCHITECTURE (patterns only, no dependency)
+
+**Repo:** https://github.com/stablyai/orca · **Stars:** 84.8K · **Forks:** 5.5K · **Commits:** 12,667 · **License:** MIT · **Backing:** YC-backed, ships daily (their own words; the releases page is the real feature list)
+**Stack:** Electron + React desktop (pnpm monorepo) · React Native mobile companion (iOS App Store + sideloaded Android APK 0.0.52; fastlane, FCM/APNs) · self-hostable cloud relay (`cloud/`, independent pnpm workspace, GCE/Cloud Run/Cloud SQL + Terraform, 25 gated deploy workflows)
+**Researched:** 2026-10-04 · **Depth:** README + full repo tree + `cloud/README.md` (relay + push gateway) + `mobile/` structure. Their API/auth services live in a private repo (`stablyai/orca-cloud`) — the OSS repo is a partially-open product; conclusions below are scoped to what is public.
+
+### What it actually is (no hype)
+
+Three products in one monorepo:
+
+1. **The ADE** — an Electron "Agent Development Environment": Ghostty-class terminal splits (WebGL), one prompt fanned across N agents each in an isolated git worktree, embedded Chromium with Design Mode (click a UI element → HTML/CSS/screenshot into the agent prompt), VS Code-style editing, drag-files-to-agent, annotate AI diffs and ship comments back, SSH worktrees on remote boxes, Computer Use, GitHub + Linear browsing with "open a worktree from any task". Works with **any CLI agent** — 30+ named (Claude Code, Codex, Cursor CLI, Copilot CLI, Grok, Muse, Amp, Devin CLI, Goose, Cline, Qwen Code, **OpenCode**, Hermes, …).
+2. **Mobile companion** — React Native app: monitor and steer agents from the phone, push notifications when an agent finishes, follow-ups from anywhere. Pairs to the desktop through the relay, not the LAN.
+3. **The relay** (`cloud/`) — the piece that matters to us. Phones and desktops **never talk to each other directly**: each opens an *outbound* WebSocket to a relay cell; a director assigns hosts to cells and coordinates migrations; cells splice frames between the two sessions. Shared wire contract package (`relay-contract`: frame shapes, close codes, admission budgets, splice state machine). Separate push gateway: the **desktop** authenticates with its X25519 key (encrypted challenge → 24h session) and registers each paired phone's native push token — **phones never hold credentials**. Logging is aggregate counters only; tokens, notification bodies, host fingerprints never logged.
+
+### Plane-by-plane overlap read (the brutal part)
+
+| GitSwipe plane | Orca equivalent | Honest read |
+|---|---|---|
+| Discover (evidence-ranked swipe feed, skill graph, dedup, radar) | GitHub/Linear *browsing* — no ranking, no AI opportunity discovery, no swipe semantics | **Ours alone** |
+| Decide (task contract §16, hash-bound) | none — prompt + worktree | **Ours alone** |
+| Secure execution (policy below LLM, §118 gate, hash-bound approvals, broker, audit, redaction) | nothing visible — "run with your own subscription" = trust the agent | **Ours alone** |
+| Execute (one task = one worktree, OpenCode adapter) | parallel worktrees, 30+ agents, SSH remotes, snapshot/restore | **Theirs, stronger today** |
+| Supervise from phone (WEEK-08/09) | mobile companion shipping NOW with app-store polish + push | **Theirs — this sentence is no longer ours to pitch** |
+| BYOK AI analysis plane (§7) | different thing — BYO *accounts* for agents, no analysis layer | not comparable |
+
+**Strategic conclusion:** Orca validates the category (agent-fleet management has real, massive demand) while leaving GitSwipe's locked core untouched: it is a *cockpit for power users driving agents they already trust*. GitSwipe is a *dispatcher that decides what is worth doing (with evidence) and gates execution deterministically*. They share two primitives — worktrees and remote supervision — and nothing else. Consequence for us: **phone supervision is table stakes, not the headline.** The pitch leads with Discover → Decide → Secure-execute; the phone is where approvals happen to live.
+
+### Quality signals (honest read)
+
+- **Good:** the relay design is genuinely sophisticated and matches our already-locked threat model (no inbound ports, workstation connects outbound) — proven at 84.8K-star distribution. Contract-first discipline (a shared wire-contract package with close codes and admission budgets). Ops hygiene: deploy workflows inert behind repo vars, contract tests pinning Terraform surfaces, aggregate-only logging (a discipline we already enforce via redaction). Dogfooding artifacts checked into the repo (mobile session-streaming findings docs). Skills directories (`skills/`, `skill-stubs/`, `skill-guides/`) — they've adopted the agent-skills convention too.
+- **Caution:** 84.8K stars with daily ships is a funded team at full velocity — we do not race them on their surface. Electron + terminal emulation + embedded Chromium + Computer Use is a heavyweight, trust-the-agent product shape; the opposite of a thin, gated, local-first dispatcher. The OSS repo is not the whole product (API/auth services private).
+
+### What GitSwipe takes (patterns, zero code, zero deps)
+
+1. **Relay reference architecture — the big one.** When GitSwipe's remote-access door opens (contract optional transport; post-v1; ADR required), `cloud/packages/relay-contract` is the MIT-licensed shape to study: outbound-both-sides WebSocket, session pairing, splice state machine, close codes, admission budgets. Our outbound-only rule survives intact — a relay the workstation *dials out to* is exactly the shape the contract's optional-transport door described.
+2. **Push-gateway security shape.** Desktop holds the credential; X25519 encrypted challenge mints a short-lived session; per-phone push tokens registered BY THE DESKTOP, not the phone; aggregate-only logs. If we ever add remote push notifications, steal this shape wholesale.
+3. **Agent adapter catalog.** Their supported-agents list is a free, vetted post-v1 AgentAdapter (§17) backlog — 30+ CLI agents with real user bases.
+4. **"Agents drive the orchestrator" validation.** Their `orca` CLI (`worktree create`, `snapshot`…) is convergent evolution with our ADR 0008 dual-plane idea and the CLI-Anything tool-manifest pattern. Third independent confirmation; keep the worktree tool manifest on the WEEK-06/07 wiring list.
+5. **Small:** usage/rate-limit-reset surfacing (their account switcher) — a plausible `@jarvis/providers` health addition, a few lines, post-v1 polish.
+
+### What GitSwipe refuses
+
+- **Their surface:** terminal emulation, IDE editor, embedded Chromium, Design Mode, Computer Use, fan-out prompt-racing (one prompt → 5 agents, merge the winner). That is a full ADE product category — fighting there means building a second product (contract §178.20). GitSwipe's supervision is an event stream + approval cards, deliberately not terminal mirroring.
+- **React Native.** Capacitor is locked (PROJECT-CORE #6) and correct for our shape: we wrap an existing web UI; they built a native terminal-streaming companion. Note the boundary: if mobile supervision ever needs real-time terminal streaming, that is the moment RN-class investment would pay — it is not on our ladder.
+- **Their relay as a dependency.** It is product infra wired to GCP ops. If our door opens, we build a thin own relay informed by their contract shapes.
+
+### Scorecard
+
+| Dimension | Score | Note |
+|---|---|---|
+| Engineering quality | 9/10 | Relay + contract-first + ops discipline is the best we've reviewed in this file |
+| Relevance to GitSwipe v1 | 3/10 | No v1 dependency; WEEK-09/10 plans unchanged |
+| Pattern value | 8/10 | Relay + push-gateway shapes are the most directly useful patterns found so far |
+| Competitive pressure | 7/10 | Kills "supervise from your phone" as a headline; validates the category; leaves Discover/Decide/Secure untouched |
+| License | ✅ MIT | Clean pattern study; we take no code |
+
+**Final: ⚠️ COMPETITOR + REFERENCE ARCHITECTURE.** Patterns parked (relay shapes, push-gateway auth, adapter catalog, CLI-orchestrator validation); no dependency, no stack change; positioning sharpened — pitch Discover → Decide → Secure-execute, never "control agents from your phone." Post-v1 SUGGESTIONS entries pending user approval.
 
 ---
 
