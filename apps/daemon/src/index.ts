@@ -181,6 +181,11 @@ async function serveCommand(): Promise<void> {
   const journal = new WorkstationJournal(journalPath(config.dataDir));
   const queue = new DurableQueue(queuePath(config.dataDir));
 
+  const { createSecretStore } = await import("@jarvis/providers");
+  const { resolveWorkRoot } = await import("./workstation/settings.js");
+  const secretStore = createSecretStore({ dataDir: join(config.dataDir, "secrets") });
+  const workRoot = resolveWorkRoot(config.dataDir);
+
   const feedEngine = await buildProductionFeed(config.dataDir);
   const sessionManager = await buildProductionSessions(config.dataDir, journal, identity);
 
@@ -193,14 +198,16 @@ async function serveCommand(): Promise<void> {
     health: () => gatherHealth(config.dataDir),
     feedEngine,
     sessionManager,
+    secretStore,
   });
 
   process.stdout.write(
     [
       "",
-      `  GitSwipe workstation — serving on ${config.bind}:${config.port} (${identity.deviceId})`,
+      `  GitSwipe workstation - serving on ${config.bind}:${config.port} (${identity.deviceId})`,
       `  journal: ${journal.latest()} events recovered | queue: ${queue.list().length} tasks recovered`,
       `  UI: ${feedEngine !== undefined ? "feed + sessions wired" : "feed engine unavailable"}`,
+      `  workspace: ${workRoot.path}${workRoot.isDefault ? " (default - set a folder in Settings)" : ""}`,
       "",
       "  Pair a device: jarvisd pair   then POST /api/pair from the client.",
       "  Stop with Ctrl+C.",

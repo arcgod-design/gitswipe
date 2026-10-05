@@ -13,6 +13,7 @@ export interface ProviderConfig {
 export const PROVIDER_PRESETS: Record<string, { baseUrl: string; displayName: string }> = {
   openai: { baseUrl: "https://api.openai.com/v1", displayName: "OpenAI" },
   openrouter: { baseUrl: "https://openrouter.ai/api/v1", displayName: "OpenRouter" },
+  "nvidia-nim": { baseUrl: "https://integrate.api.nvidia.com/v1", displayName: "NVIDIA NIM" },
   gemini: {
     baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
     displayName: "Google Gemini (OpenAI-compatible)",
@@ -33,6 +34,7 @@ export function createProvider(config: ProviderConfig): AIProvider {
       );
     case "openai":
     case "openrouter":
+    case "nvidia-nim":
     case "gemini":
     case "ollama":
     case "generic": {

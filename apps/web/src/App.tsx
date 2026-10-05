@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   CheckCircle,
@@ -455,15 +455,152 @@ function SessionScreen({ sessionId, onBack }: { sessionId: string; onBack: () =>
   );
 }
 
+interface ProviderPreset {
+  id: string;
+  displayName: string;
+}
+
+interface SettingsState {
+  workRoot: string;
+  workRootDefault: boolean;
+  providerId: string | null;
+  model: string | null;
+  keyConfigured: boolean;
+  keyMasked: string | null;
+  presets: ProviderPreset[];
+}
+
 function SettingsScreen(): React.ReactNode {
   const [report, setReport] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const [workRoot, setWorkRoot] = useState("");
+  const [workRootDefault, setWorkRootDefault] = useState(false);
+  const [workRootInput, setWorkRootInput] = useState("");
+  const [workRootMsg, setWorkRootMsg] = useState<string | null>(null);
+
+  const [presets, setPresets] = useState<ProviderPreset[]>([]);
+  const [providerId, setProviderId] = useState("nvidia-nim");
+  const [model, setModel] = useState("nvidia/nemotron-3-super-120b-a12b");
+  const [keyMasked, setKeyMasked] = useState<string | null>(null);
+  const [keyInput, setKeyInput] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+  const [providerMsg, setProviderMsg] = useState<string | null>(null);
+  const [providerOk, setProviderOk] = useState<boolean | null>(null);
+
+  const reload = useCallback(() => {
     void call<Record<string, unknown>>("/api/workstation")
       .then(setReport)
       .catch((err) => setError(err instanceof Error ? err.message : "failed"));
+    void call<SettingsState>("/api/settings")
+      .then((s) => {
+        setWorkRoot(s.workRoot);
+        setWorkRootDefault(s.workRootDefault);
+        if (s.providerId !== null) setProviderId(s.providerId);
+        if (s.model !== null) setModel(s.model);
+        setKeyMasked(s.keyMasked);
+        setPresets(s.presets);
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : "failed"));
   }, []);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
+
+  const saveProvider = (): void => {
+    setBusy("provider");
+    void call<{ providerId: string; model: string }>("/api/settings/provider", {
+      method: "POST",
+      body: JSON.stringify({ providerId, model }),
+    })
+      .then(() => {
+        setProviderOk(null);
+        setProviderMsg(`provider saved: ${providerId} · ${model}`);
+      })
+      .catch((err) => {
+        setProviderOk(false);
+        setProviderMsg(err instanceof Error ? err.message : "save failed");
+      })
+      .finally(() => setBusy(null));
+  };
+
+  const saveKey = (): void => {
+    setBusy("key");
+    void call<{ providerId: string; keyMasked: string }>("/api/settings/provider/key", {
+      method: "POST",
+      body: JSON.stringify({ providerId, apiKey: keyInput }),
+    })
+      .then((r) => {
+        setKeyMasked(r.keyMasked);
+        setKeyInput("");
+        setProviderOk(true);
+        setProviderMsg(`key stored for ${providerId} (${r.keyMasked}) - encrypted in the OS secret store`);
+      })
+      .catch((err) => {
+        setProviderOk(false);
+        setProviderMsg(err instanceof Error ? err.message : "key store failed");
+      })
+      .finally(() => setBusy(null));
+  };
+
+  const removeKey = (): void => {
+    setBusy("key");
+    void call<{ providerId: string; deleted: boolean }>("/api/settings/provider/key/delete", {
+      method: "POST",
+      body: JSON.stringify({ providerId }),
+    })
+      .then(() => {
+        setKeyMasked(null);
+        setProviderOk(true);
+        setProviderMsg(`key removed for ${providerId}`);
+      })
+      .catch((err) => {
+        setProviderOk(false);
+        setProviderMsg(err instanceof Error ? err.message : "key delete failed");
+      })
+      .finally(() => setBusy(null));
+  };
+
+  const testProvider = (): void => {
+    setBusy("test");
+    setProviderOk(null);
+    setProviderMsg("testing provider...");
+    void call<{ ok: boolean; detail?: string; latencyMs?: number; model?: string; reply?: string; error?: string }>(
+      "/api/settings/provider/test",
+      { method: "POST", body: JSON.stringify({ providerId, model }) },
+    )
+      .then((r) => {
+        setProviderOk(r.ok);
+        setProviderMsg(
+          r.ok
+            ? `${providerId} OK - ${r.detail ?? ""} (${r.latencyMs ?? 0}ms) · ${r.model ?? ""} replied: ${r.reply ?? ""}`
+            : `test failed: ${r.error ?? r.detail ?? "unknown error"}`,
+        );
+      })
+      .catch((err) => {
+        setProviderOk(false);
+        setProviderMsg(err instanceof Error ? err.message : "test failed");
+      })
+      .finally(() => setBusy(null));
+  };
+
+  const saveWorkRoot = (): void => {
+    setBusy("workroot");
+    setWorkRootMsg(null);
+    void call<{ workRoot: string }>("/api/settings/workroot", {
+      method: "POST",
+      body: JSON.stringify({ path: workRootInput }),
+    })
+      .then((r) => {
+        setWorkRoot(r.workRoot);
+        setWorkRootDefault(false);
+        setWorkRootInput("");
+        setWorkRootMsg(`workspace set to ${r.workRoot}`);
+      })
+      .catch((err) => setWorkRootMsg(err instanceof Error ? err.message : "workspace update failed"))
+      .finally(() => setBusy(null));
+  };
 
   return (
     <section>
@@ -491,11 +628,117 @@ function SettingsScreen(): React.ReactNode {
               {String(report.pairedDeviceId ?? "n/a")} — {String(report.label ?? "unknown")}
             </p>
           </div>
-          <div className="notice" style={{ marginTop: 16 }}>
-            Production settings (BYOK providers, GitHub connection) land with the real daemon task runner. BYOK keys go in the OS store: jarvisd secret set provider:openai
-          </div>
         </div>
       ) : null}
+
+      <div className="card" style={{ padding: 24, marginTop: 18 }}>
+        <div className="chip-row">
+          <span className="chip kind">byok</span>
+          <span className="chip">{keyMasked !== null ? `key ${keyMasked}` : "no key stored"}</span>
+        </div>
+        <div className="contract-section">
+          <h3>AI provider</h3>
+          <div className="form-row">
+            <label htmlFor="provider-select">Provider</label>
+            <select
+              id="provider-select"
+              className="form-input"
+              value={providerId}
+              onChange={(e) => setProviderId(e.target.value)}
+            >
+              {presets.length > 0 ? (
+                presets.map((p) => (
+                  <option key={p.id} value={p.id}>{p.displayName}</option>
+                ))
+              ) : (
+                <option value={providerId}>{providerId}</option>
+              )}
+            </select>
+          </div>
+          <div className="form-row">
+            <label htmlFor="model-input">Model</label>
+            <input
+              id="model-input"
+              className="form-input"
+              type="text"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              autoComplete="off"
+            />
+          </div>
+          <div className="btn-row">
+            <button type="button" className="btn btn-primary" disabled={busy !== null} onClick={saveProvider}>
+              Save provider
+            </button>
+            <button type="button" className="btn btn-quiet" disabled={busy !== null} onClick={testProvider}>
+              {busy === "test" ? "Testing..." : "Test provider"}
+            </button>
+          </div>
+          <div className="form-row">
+            <label htmlFor="key-input">API key</label>
+            <input
+              id="key-input"
+              className="form-input"
+              type="password"
+              value={keyInput}
+              onChange={(e) => setKeyInput(e.target.value)}
+              autoComplete="off"
+            />
+          </div>
+          <p className="mono-value">
+            {keyMasked !== null
+              ? `key stored: ${keyMasked} (OS secret store - never leaves this machine)`
+              : "paste a key and store it - it is encrypted in the OS credential store, never written to disk in plaintext"}
+          </p>
+          <div className="btn-row">
+            <button type="button" className="btn btn-primary" disabled={busy !== null || keyInput.length < 8} onClick={saveKey}>
+              Store key
+            </button>
+            <button type="button" className="btn btn-danger" disabled={busy !== null || keyMasked === null} onClick={removeKey}>
+              Remove key
+            </button>
+          </div>
+          {providerMsg !== null ? (
+            <div className={providerOk === false ? "error-state" : "notice"} style={{ marginTop: 12 }}>
+              {providerMsg}
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="card" style={{ padding: 24, marginTop: 18 }}>
+        <div className="chip-row">
+          <span className="chip kind">workspace</span>
+          <span className="chip">{workRootDefault ? "default folder" : "custom folder"}</span>
+        </div>
+        <div className="contract-section">
+          <h3>Workspace root</h3>
+          <p className="mono-value">{workRoot}</p>
+          <p className="hint">
+            Repos and worktrees live inside this folder. Set your own (an existing GitHub work folder is fine) or leave
+            it unset to use the default. GitSwipe never touches anything outside it.
+          </p>
+          <div className="form-row">
+            <label htmlFor="workroot-input">Workspace folder (absolute path)</label>
+            <input
+              id="workroot-input"
+              className="form-input"
+              type="text"
+              value={workRootInput}
+              onChange={(e) => setWorkRootInput(e.target.value)}
+              autoComplete="off"
+            />
+          </div>
+          <div className="btn-row">
+            <button type="button" className="btn btn-primary" disabled={busy !== null || workRootInput.length < 3} onClick={saveWorkRoot}>
+              Set workspace
+            </button>
+          </div>
+          {workRootMsg !== null ? (
+            <div className="notice" style={{ marginTop: 12 }}>{workRootMsg}</div>
+          ) : null}
+        </div>
+      </div>
     </section>
   );
 }

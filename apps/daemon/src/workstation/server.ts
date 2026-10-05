@@ -5,8 +5,15 @@ import { extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
 import { isProtocolCompatible, WORKSTATION_PROTOCOL, WORKSTATION_PROTOCOL_VERSION } from "@jarvis/protocol";
+import { createProvider, maskKey, PROVIDER_PRESETS, resolveApiKey, type SecretStore } from "@jarvis/providers";
 import type { WorkstationConfig } from "./config.js";
 import { describeBind } from "./config.js";
+import {
+  loadSettings,
+  saveSettings,
+  validateAndPrepareWorkRoot,
+  defaultWorkRoot,
+} from "./settings.js";
 import type { DeviceIdentity } from "./identity.js";
 import type { PairingService } from "./pairing.js";
 import type { WorkstationJournal } from "./journal.js";
@@ -47,8 +54,9 @@ export function startWorkstationServer(deps: {
   health: () => Promise<WorkstationHealth>;
   feedEngine?: ProductionFeedEngine;
   sessionManager?: ProductionSessionManager;
+  secretStore?: SecretStore;
 }): Promise<WorkstationServerHandle> {
-  const { config, identity, pairing, journal, queue, health, feedEngine, sessionManager } = deps;
+  const { config, identity, pairing, journal, queue, health, feedEngine, sessionManager, secretStore } = deps;
 
   const server = createServer((req, res) => {
     void handle(req, res).catch((err: unknown) => {
@@ -137,6 +145,144 @@ export function startWorkstationServer(deps: {
     if (req.method === "GET" && url.pathname === "/api/sessions") {
       const from = Number.parseInt(url.searchParams.get("from") ?? "0", 10);
       respond(200, { events: journal.readFrom(Number.isNaN(from) ? 0 : from), latest: journal.latest() });
+      return;
+    }
+
+    if (url.pathname.startsWith("/api/settings")) {
+      const PROVIDER_IDS = [...Object.keys(PROVIDER_PRESETS), "anthropic", "generic"];
+      const presets = [
+        ...Object.entries(PROVIDER_PRESETS).map(([id, p]) => ({ id, displayName: p.displayName })),
+        { id: "anthropic", displayName: "Anthropic" },
+        { id: "generic", displayName: "Custom (OpenAI-compatible)" },
+      ];
+      const settings = loadSettings(config.dataDir);
+      const workRoot = settings.workRoot ?? defaultWorkRoot(config.dataDir);
+      const providerId = settings.providerId ?? null;
+      const key = providerId !== null && secretStore !== undefined ? await resolveApiKey(providerId, secretStore) : { source: "none" as const };
+
+      if (req.method === "GET" && url.pathname === "/api/settings") {
+        respond(200, {
+          workRoot,
+          workRootDefault: settings.workRoot === undefined,
+          providerId,
+          model: settings.model ?? null,
+          keyConfigured: key.key !== undefined,
+          keyMasked: key.key !== undefined ? maskKey(key.key) : null,
+          presets,
+        });
+        return;
+      }
+
+      if (req.method === "POST" && url.pathname === "/api/settings/workroot") {
+        const body = (await readJson(req)) as Record<string, unknown>;
+        const parsed = z.object({ path: z.string().min(2) }).safeParse(body);
+        if (!parsed.success) {
+          respond(400, { error: "invalid workroot payload" });
+          return;
+        }
+        const err = validateAndPrepareWorkRoot(parsed.data.path);
+        if (err !== null) {
+          respond(400, { error: err });
+          return;
+        }
+        saveSettings(config.dataDir, { workRoot: parsed.data.path });
+        respond(200, { workRoot: parsed.data.path, workRootDefault: false });
+        return;
+      }
+
+      if (req.method === "POST" && url.pathname === "/api/settings/provider") {
+        const body = (await readJson(req)) as Record<string, unknown>;
+        const parsed = z
+          .object({ providerId: z.string().min(1), model: z.string().min(1).max(200) })
+          .safeParse(body);
+        if (!parsed.success || !PROVIDER_IDS.includes(parsed.data.providerId)) {
+          respond(400, { error: "invalid provider payload" });
+          return;
+        }
+        saveSettings(config.dataDir, { providerId: parsed.data.providerId, model: parsed.data.model });
+        respond(200, { providerId: parsed.data.providerId, model: parsed.data.model });
+        return;
+      }
+
+      if (req.method === "POST" && url.pathname === "/api/settings/provider/key") {
+        if (secretStore === undefined) {
+          respond(503, { error: "secret store unavailable" });
+          return;
+        }
+        const body = (await readJson(req)) as Record<string, unknown>;
+        const parsed = z
+          .object({ providerId: z.string().min(1), apiKey: z.string().min(8).max(4096) })
+          .safeParse(body);
+        if (!parsed.success || !PROVIDER_IDS.includes(parsed.data.providerId)) {
+          respond(400, { error: "invalid provider key payload" });
+          return;
+        }
+        await secretStore.set(`provider:${parsed.data.providerId}`, parsed.data.apiKey);
+        respond(200, { providerId: parsed.data.providerId, keyMasked: maskKey(parsed.data.apiKey) });
+        return;
+      }
+
+      if (req.method === "POST" && url.pathname === "/api/settings/provider/key/delete") {
+        if (secretStore === undefined) {
+          respond(503, { error: "secret store unavailable" });
+          return;
+        }
+        const body = (await readJson(req)) as Record<string, unknown>;
+        const parsed = z.object({ providerId: z.string().min(1) }).safeParse(body);
+        if (!parsed.success) {
+          respond(400, { error: "invalid provider key payload" });
+          return;
+        }
+        await secretStore.delete(`provider:${parsed.data.providerId}`);
+        respond(200, { providerId: parsed.data.providerId, deleted: true });
+        return;
+      }
+
+      if (req.method === "POST" && url.pathname === "/api/settings/provider/test") {
+        if (secretStore === undefined) {
+          respond(503, { error: "secret store unavailable" });
+          return;
+        }
+        const body = (await readJson(req)) as Record<string, unknown>;
+        const parsed = z
+          .object({ providerId: z.string().min(1), model: z.string().min(1).max(200) })
+          .safeParse(body);
+        if (!parsed.success || !PROVIDER_IDS.includes(parsed.data.providerId)) {
+          respond(400, { error: "invalid provider test payload" });
+          return;
+        }
+        const resolved = await resolveApiKey(parsed.data.providerId, secretStore);
+        if (resolved.key === undefined) {
+          respond(400, { ok: false, error: `no key stored for ${parsed.data.providerId}` });
+          return;
+        }
+        const started = Date.now();
+        try {
+          const provider = createProvider({ providerId: parsed.data.providerId, apiKey: resolved.key });
+          const status = await provider.healthCheck();
+          if (!status.ok) {
+            respond(200, { ok: false, detail: status.detail, latencyMs: status.latencyMs });
+            return;
+          }
+          const chat = await provider.chat({
+            model: parsed.data.model,
+            messages: [{ role: "user", content: "Reply with exactly: OK" }],
+            maxTokens: 300,
+          });
+          respond(200, {
+            ok: true,
+            detail: status.detail,
+            latencyMs: Date.now() - started,
+            model: parsed.data.model,
+            reply: chat.content.trim().slice(0, 120),
+          });
+        } catch (err) {
+          respond(200, { ok: false, detail: err instanceof Error ? err.message : "provider test failed" });
+        }
+        return;
+      }
+
+      respond(404, { error: "not found" });
       return;
     }
 

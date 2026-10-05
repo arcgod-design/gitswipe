@@ -64,6 +64,30 @@ export interface SessionEvent {
   payload: Record<string, unknown>;
 }
 
+export interface ProviderPreset {
+  id: string;
+  displayName: string;
+}
+
+export interface SettingsState {
+  workRoot: string;
+  workRootDefault: boolean;
+  providerId: string | null;
+  model: string | null;
+  keyConfigured: boolean;
+  keyMasked: string | null;
+  presets: ProviderPreset[];
+}
+
+export interface ProviderTestResult {
+  ok: boolean;
+  detail: string;
+  latencyMs?: number;
+  model?: string;
+  reply?: string;
+  error?: string;
+}
+
 export const token = {
   read(): string | null {
     const params = new URLSearchParams(window.location.search);
@@ -126,6 +150,29 @@ export const api = {
       body: JSON.stringify({ approve }),
     }),
   resetDemo: () => call<{ demo: boolean; reset: boolean }>("/api/demo/reset", { method: "POST" }),
+  settings: () => call<SettingsState>("/api/settings"),
+  setWorkRoot: (path: string) =>
+    call<{ workRoot: string }>("/api/settings/workroot", { method: "POST", body: JSON.stringify({ path }) }),
+  setProvider: (providerId: string, model: string) =>
+    call<{ providerId: string; model: string }>("/api/settings/provider", {
+      method: "POST",
+      body: JSON.stringify({ providerId, model }),
+    }),
+  setProviderKey: (providerId: string, apiKey: string) =>
+    call<{ providerId: string; keyMasked: string }>("/api/settings/provider/key", {
+      method: "POST",
+      body: JSON.stringify({ providerId, apiKey }),
+    }),
+  deleteProviderKey: (providerId: string) =>
+    call<{ providerId: string; deleted: boolean }>("/api/settings/provider/key/delete", {
+      method: "POST",
+      body: JSON.stringify({ providerId }),
+    }),
+  testProvider: (providerId: string, model: string) =>
+    call<ProviderTestResult>("/api/settings/provider/test", {
+      method: "POST",
+      body: JSON.stringify({ providerId, model }),
+    }),
 };
 
 export async function openEventStream(
