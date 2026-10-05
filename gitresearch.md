@@ -21,6 +21,10 @@
 | nextlevelbuilder/ui-ux-pro-max | Design intelligence skill | 721 | MIT | ✅ ALREADY IN USE | mandatory design pass (PROJECT-CORE #15) |
 | (aws backlog bulk — ~36 repos) | multi-agent frameworks, Claude Code plugins, RN templates, feature flags, binary RE, monetization, SSO | — | — | 🚫 SKIP — ALL | different product shape ("Appy" is an app-builder agency platform, not an agent control plane); per-row reasons in the screening section below |
 | stablyai/orca | Agent-fleet ADE: parallel worktrees + mobile companion + any-CLI-agent, with in-repo self-hostable relay | 84.8K | MIT | ⚠️ COMPETITOR + REFERENCE (patterns only) | relay/push-gateway security shapes → post-v1 remote-door reference; supported-agent list → adapter catalog; positioning sharpened; NO dependency, NO stack change |
+| CopilotKit/OpenBot | Governed AI-coworker platform: per-bot container computers, CEL action policy (fail-closed), approvals, audit, AG-UI agent plug-in | 6.0K | MIT | ⚠️ PATTERN REFERENCE (closest security kin; different domain) | gateway-decides-and-records architecture validates §118/§74; refusal-names-the-rule + routines-auto-off patterns; AG-UI = post-v1 interop protocol candidate; NO dependency (Docker+Postgres+Intelligence shape is not ours) |
+| CopilotKit/OpenDots | Persistent-agent template: Spaces docs, voice calls, Slack, human-review cards | 3.3K | MIT | 🚫 SKIP | personal-assistant workspace template; we already shipped both patterns it offers (approval cards, pause/resume); 18 commits, very early |
+| Anil-matcha/open-dots | Solo "Meta Muse alternative" prototype: Next.js+FastAPI, deny-by-default gateway, SQLite | 5.4K | MIT | 🚫 SKIP (one pattern noted) | WORKSPACE_ROOT env boundary = the same shape as our workRoot decision (user gives GitSwipe a folder); otherwise narrower than our stack (no Chat Completions support), SEO-shaped project |
+| CopilotKit/OpenMuse | Personal life-agent (browser/terminal/Gmail/finance) with durable task engine | 3.9K | MIT | ⚠️ TWO PATTERNS ONLY | no-hidden-retry-after-uncertain-external-write (check vs our §162 consumed-state, D3 hardening); SQL-lease crash recovery (post-v1 journal door); "Ideas with evidence" = convergent validation of Discover UX; requires CopilotKit Intelligence SaaS key — not our shape |
 
 > Prior evaluations (munder-difflin, Hermes) were recorded in ADR 0008 + daily logs; this file becomes the single index for future repo research.
 
@@ -198,6 +202,63 @@ Three products in one monorepo:
 | License | ✅ MIT | Clean pattern study; we take no code |
 
 **Final: ⚠️ COMPETITOR + REFERENCE ARCHITECTURE.** Patterns parked (relay shapes, push-gateway auth, adapter catalog, CLI-orchestrator validation); no dependency, no stack change; positioning sharpened — pitch Discover → Decide → Secure-execute, never "control agents from your phone." Post-v1 SUGGESTIONS entries pending user approval.
+
+---
+
+## CopilotKit agent-family screen + Anil-matcha/open-dots (2026-10-04)
+
+**Researched:** 2026-10-04 · **Depth:** full READMEs of all four + tree structure. All MIT. Three of the four are one vendor's suite play: CopilotKit is building a family (OpenBot = governed computers, OpenDots = persistent-coworker template, OpenMuse = personal life-agent) on shared bets: **AG-UI** (open agent-to-UI protocol) + **CopilotKit Intelligence** (threads/memory, a separate licensed SaaS service, self-hostable with a license — *not* inside the MIT repos). Anil-matcha/open-dots is an independent solo project riding the same name wave.
+
+### The strategic read first (brutal)
+
+**The gate-the-agent convergence is real.** Orca (previous entry) was the trust-the-agent outlier; these three governance-shaped repos ALL run deny-by-default action gateways with approvals + audit + encrypted credentials + redacted secrets. OpenBot's pitch sentence — *"every action decided before it happens and recorded after"* — is our §118 gate + §74 audit in their words. Two consequences:
+
+1. **Validation:** our locked security religion was not paranoia, it was prescient. The industry is converging on it.
+2. **Warning:** "security gating" alone is becoming table stakes in this sub-category. GitSwipe's differentiator stack is unchanged and remains untouched by all four repos: **Discover (evidence-ranked swipe feed — nobody has it; OpenMuse's "Ideas with source evidence" is the closest, and it's for life suggestions, not GitHub work) + Decide (hash-bound task contracts — nobody has them) + thin local-first shape (no Intelligence SaaS key, no Postgres, no Docker requirement in the core loop).**
+
+None of the four is a GitSwipe dependency candidate. They are pattern references in adjacent domains (browser/file/computer coworker agents vs our repo-work dispatch).
+
+### Deep dive — CopilotKit/OpenBot (the one that earns it)
+
+**Repo:** https://github.com/CopilotKit/OpenBot · **Stars:** 6.0K · **Forks:** 812 · **Commits:** 498 · **License:** MIT · **Status:** explicit alpha, "a template, not a product"
+
+**What it is:** an open-source AI-coworker *platform* — each Bot gets its own containerized computer (own Chromium, own workspace volume, own browser profile, gVisor optional). Every browser/file/shell/MCP action routes through ONE gateway that resolves the target, evaluates policy, writes the audit row, and only then acts. Any AG-UI endpoint becomes a Bot (LangGraph, Mastra, CrewAI, Pydantic AI, ADK, hand-written). Docker Compose + PostgreSQL/pgvector + Bun + Hono; Tauri desktop + mobile dir present. 13 example coworkers are config, not code. Hard dependence on CopilotKit Intelligence for durable threads/memory.
+
+**Where it overlaps us (honestly):** the governance layer is philosophically OUR layer — CEL policy fail-closed (deny evaluated before allow, missing policy permits nothing, broken rule refuses), approvals surface, readable audit trail, write-only encrypted credentials, secrets never in the transcript (records a secret was requested + length, not content), loopback binding by default. If GitSwipe ever added browser-automation tasks, OpenBot is what that would look like.
+
+**Where it does NOT overlap:** no discovery plane, no GitHub opportunity ranking, no task contracts, no worktree-per-issue model, no coding-agent dispatch. Its agents are browser/file coworkers; ours edit code in git worktrees. Its stack is deliberately heavy (per-bot containers + Postgres); ours is deliberately thin (JSONL local-first, ADR 0001). Its SaaS-shaped core (Intelligence key required) is the opposite of our self-contained daemon.
+
+**Patterns taken (no code, no deps):**
+
+1. **"Every refusal carries the rule that caused it."** Our gate audit records policy-version and refusal reasons; parity confirmed — keep it, and make the refusal-rule visible in the approval/audit UI when WEEK-10 hardening polishes the web screens.
+2. **Routines safety rails:** 15-minute floor, cap of 20 enabled routines, ten consecutive failures auto-switch a routine off rather than burning model spend. Directly applicable to contract §119 (user-defined automation rules, post-v1): any GitSwipe automation rule needs a failure circuit-breaker + spend cap. Recorded next to the §119 SUGGESTIONS entry.
+3. **Take-the-wheel UX:** when a Bot hits a login wall, it asks for help; human control is handed over in the same panel and recorded (`control_taken`/`control_released`); bot actions are *refused, not queued* while a human drives. For GitSwipe session takeover (§18/ADR 0008): when the user resumes a session via `opencode session resume`, the gateway should treat it the same way — one driver at a time, transitions recorded.
+4. **AG-UI as the post-v1 interop bet:** OpenBot accepts any AG-UI endpoint as an agent. When the "gitswipe-as-CLI/interop door" (parked in SUGGESTIONS) gets built, speaking AG-UI would slot GitSwipe into the CopilotKit-family orchestrators for free. Needs ADR; note added to that SUGGESTIONS entry.
+
+**Scorecard (OpenBot):**
+
+| Dimension | Score | Note |
+|---|---|---|
+| Engineering quality | 8/10 | Fail-closed CEL policy + audit-first gateway is genuinely well thought out; alpha rough edges |
+| Relevance to GitSwipe v1 | 2/10 | Different domain; zero ladder impact; 4-day plan unchanged |
+| Pattern value | 7/10 | Routines circuit-breaker, take-the-wheel semantics, refusal-names-rule, AG-UI note |
+| Competitive pressure | 2/10 | Not our product; only shares the (correct) security religion |
+| License | ✅ MIT | Clean pattern study; no code taken |
+
+**Final (OpenBot): ⚠️ PATTERN REFERENCE — closest security kin in the file; zero dependency; four patterns recorded; AG-UI noted as the post-v1 interop protocol candidate.**
+
+### Short verdicts — the other three
+
+- **CopilotKit/OpenDots — 🚫 SKIP.** Persistent-coworker template (Spaces documents, voice calls, Slack channels) built ON OpenBot's computer supervisor + Channels SDK. Both product patterns it offers that touch us — human-in-the-loop approve/decline cards and background-work pause/retry — are already shipped in our stack (approval card in the session screen; AgentGateway pause/resume). 18 commits; explicit template. Their README verification discipline (dates + fixtures-visibly-separate) mirrors our WORKING/PROTO honesty — nice confirmation, nothing to take.
+- **Anil-matcha/open-dots — 🚫 SKIP (one pattern noted).** Independent solo prototype (Next.js + FastAPI + SQLite + Fernet), marketing-shaped ("alternative to OpenAI Dots, Meta Muse, Grok Bot…" topic spray, YouTube-driven). Narrower than our stack: its inference adapter does NOT implement Chat Completions (prediction/Responses only) — our OpenAI-compatible plane is strictly more capable. The one thing worth recording: **`WORKSPACE_ROOT` — "directory boundary for approved workspace actions."** This is the same design as our workRoot decision (user gives GitSwipe a folder; every approved action is confined to it). Convergent validation that the folder-boundary config is the right shape; ours is stricter (worktree-per-task on top of the root).
+- **CopilotKit/OpenMuse — ⚠️ TWO PATTERNS ONLY.** Personal life-agent (Gmail, calendar, PDFs, finance, browser) on React Native + Hono + PGlite; requires a CopilotKit Intelligence key in every mode — vendor-shaped core, not our self-contained daemon. Two genuinely good engineering rules worth stealing:
+  1. **"No hidden retry occurs after an uncertain external write. Review its provider outcome before creating a replacement."** This is the same religion as our §162 (approvals consumed on every terminal path; failed executions consume too) — but stated as an operational rule for *provider writes*. Action for us: **D3 hardening check — audit our `@jarvis/github` write paths (PR create, comment post): an uncertain/timeout outcome must surface to the user, never auto-retry** (a hidden retry could double-post). Small, real, on the 4-day list.
+  2. **SQL leases recover interrupted work** — their crash-recovery shape. Ours is the journal + restart recovery (§33); a lease concept is a post-v1 journal enhancement door if we ever add a second daemon process. Park in SUGGESTIONS with the §33 work.
+  Also: their **"Ideas — suggestions with source evidence; edit, accept, or dismiss"** surface is independent convergent validation of our Discover UX (evidence-backed cards, swipe = accept/dismiss). And their mobile choice (React Native/Expo, like Orca) again confirms our boundary: they need native browser/terminal consoles; we wrap a web UI — **Capacitor stays locked**.
+
+### Bottom line (brutal)
+
+Four repos, zero dependencies, zero stack changes, five patterns recorded (routines circuit-breaker for §119, take-the-wheel single-driver semantics, refusal-names-rule UI note, no-hidden-retry write rule for the D3 hardening check, SQL-lease post-v1 door), one interop protocol noted (AG-UI), one convergent validation of workRoot and of the Discover UX. The CopilotKit family is a suite play with an SaaS-shaped core; Anil-matcha is a trend-rider. **None of them discovers GitHub work, ranks it with evidence, binds it to a task contract, or dispatches it to a coding agent in a worktree. That sentence is still ours alone — and after this session, it is the ONLY sentence that matters for the demo.**
 
 ---
 
