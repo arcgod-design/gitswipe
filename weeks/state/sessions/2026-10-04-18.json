@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-04 (session 18)",
+  "in_flight": "4-day demo sprint - D1",
+  "d1_status": "done (BYOK on app + workspace root + nvidia-nim live-verified; 180/180)",
+  "verified": [
+    "npm run typecheck -> clean",
+    "npm test -> 180/180 (9 new settings tests)",
+    "live: pair -> settings -> save provider -> provider/test -> nemotron replied [OK] (1278ms) -> workroot set"
+  ],
+  "files_touched": [
+    "packages/providers/src/registry.ts (nvidia-nim preset)",
+    "apps/daemon/src/workstation/settings.ts (new)",
+    "apps/daemon/src/workstation/server.ts (6 settings routes + secretStore dep)",
+    "apps/daemon/src/index.ts (serve wires store + workRoot)",
+    "apps/web/src/App.tsx (SettingsScreen BYOK + workspace forms)",
+    "apps/web/src/styles.css (.form-input/.form-row/.btn-row)",
+    "apps/web/src/api.ts (settings client surface)",
+    "apps/daemon/test/workstation/settings.test.ts (new)"
+  ],
+  "decisions_locked": [
+    "workRoot: user-provided folder wins, else auto-created default under dataDir (user directive)",
+    "default demo provider: nvidia-nim / nvidia/nemotron-3-super-120b-a12b (user directive, verified live)",
+    "self-learning v1.5 scope locked in NEXT-TASKS: outcome feedback + topic tags + recency decay (+stretch fast-skip dampener)"
+  ],
+  "next_step": "D2: self-learning v1.5 + Capacitor wrap (skills installed); then D3 APK + hardening (no-hidden-retry audit, replay E2E, Lighthouse); D4 rehearsal",
+  "user_blockers": ["U5b GitHub PAT (later)", "rotate NVIDIA key after demo", "U2 license"]
+}

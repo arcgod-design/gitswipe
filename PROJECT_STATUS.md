@@ -45,7 +45,9 @@
 | Daemon CLI: `version` / `check` (preflight) / `health` (provider health — honest FAIL + exit 1) / `github check` (token + /user + rate budget) / `secret set|get|list|delete` (DPAPI-backed, masked display) | `apps/daemon` | manual runs 2026-09-24 |
 | Production web UI: pairing screen (single-use code → device token), feed (swipe cards, keyboard nav, explainable reasons, skeleton loading), session supervision (live per-session SSE stream, approval card with exact push action + DENY/APPROVE, state badge, completed summary), settings (workstation health report); design tokens per ADR 0005 seed (slate-900, green accent, Space Grotesk/DM Sans/JetBrains Mono, phosphor icons) | `apps/web` (React+Vite, builds to `apps/daemon/public`) | live 9-step browser flow 2026-10-01: UI 200 HTML → pair → feed 3 cards → swipe 3→2 → session → WAITING_FOR_APPROVAL → approve → COMPLETED → workstation report |
 | Production feed/session API: `GET /api/feed`, `POST /api/swipe`, `POST /api/feed/reset`, `POST /api/session` (AgentGateway + MockAgent), `GET /api/session/:id`, `GET /api/session/:id/events` (per-session SSE, terminal-state detection), `POST /api/session/:id/approve`; static UI served BEFORE auth (pairing screen is the entry point) | `apps/daemon/src/workstation/server.ts` | live 2026-10-01 + vitest |
-| Monorepo toolchain: npm workspaces, TS strict, vitest 5, CI workflow | root + `.github/workflows/ci.yml` | `npm run typecheck` + `npm test` green (171/171) |
+| BYOK on the app: settings UI + API — provider select (OpenAI/OpenRouter/NVIDIA NIM/Gemini/Ollama/Anthropic/custom), password-type key store/remove (OS secret store, masked display, never plaintext on disk), live provider test (healthCheck + real chat ping); workstation settings API (6 routes behind device-token auth) + settings.json persistence; workspace root: user folder or auto-created default, absolute-path validation, all repos/worktrees confined to it | `apps/web/src/App.tsx` (SettingsScreen), `apps/daemon/src/workstation/{settings.ts,server.ts}` | vitest (9 settings tests, MemorySecretStore) + live 2026-10-04: nemotron replied [OK] via the app path |
+| NVIDIA NIM provider + live smoke: `nvidia-nim` preset (integrate.api.nvidia.com/v1, OpenAI-compatible), key in DPAPI store, health OK, `nvidia/nemotron-3-super-120b-a12b` chat + model-list verified live (81 models visible) | `packages/providers/src/registry.ts`, `apps/daemon` | live smoke 2026-10-04 (health 336ms, chat reply verified) |
+| Monorepo toolchain: npm workspaces, TS strict, vitest 5, CI workflow | root + `.github/workflows/ci.yml` | `npm run typecheck` + `npm test` green (180/180) |
 | Session-resume documentation system (this file + SESSION-STATE + weeks + doc-of-journey) | repo root | n/a — process, verified by use |
 
 ## PROTO
@@ -53,10 +55,8 @@
 | Capability | Where | Why not WORKING yet |
 |---|---|---|
 | macOS Keychain + Linux libsecret secret stores | `packages/providers/src/secret-store.ts` | Code is real but untestable on this Windows machine; first darwin/linux use must be verified live. (Windows DPAPI store IS WORKING.) |
-| Puter client-side AIProvider bridge (injected puter object, chat only) | `packages/providers/src/puter.ts` | Needs the browser puter.js runtime; WEEK-08 shipped the local UI without it (core flow never requires Puter). Post-v1 polish. Never a daemon-side dependency. |
-| Live provider smoke against real APIs (OpenAI/Ollama/etc.) | — | Needs BYOK key in `.env` or OS store (USER-THING-TO-DO #5). All current tests use local mock servers by design. |
-| Live GitHub smoke (real token → /user → live repo ingest) | `jarvisd github check` path | Needs a fine-grained PAT in the OS store (USER-THING-TO-DO #5/U3). Fixture-driven tests fully green; the live path prints honest no-token failure today. |
-| BYOK provider editing in the settings UI (view-only today: workstation report renders, no add/edit/remove forms) | `apps/web/src/screens/Settings.tsx` | Forms land as WEEK-11 polish; the settings screen itself is WORKING. |
+| Puter client-side AIProvider bridge (injected puter object, chat only) | `packages/providers/src/puter.ts` | Needs the browser puter.js runtime; user parked Puter until after the demo. Core flow never requires Puter (verified). Never a daemon-side dependency. |
+| Live GitHub smoke (real token → /user → live repo ingest) | `jarvisd github check` path | Needs a fine-grained PAT in the OS store (USER-THING-TO-DO #5b — user will provide later). Fixture-driven tests fully green; the demo runs on the seeded feed. Live provider smoke is no longer blocked (NVIDIA done 2026-10-04). |
 
 ## ROADMAP (scheduled, contract sections in parens)
 

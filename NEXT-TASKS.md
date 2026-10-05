@@ -20,7 +20,30 @@
 | WEEK-11 | Packaging + CI/CD + docs complete | PENDING |
 | WEEK-12 | Master acceptance scenario + v1 ship | PENDING |
 
+## 4-day demo plan (locked 2026-10-04 — show date ~2026-10-08; "fully working setup" per user)
+
+> The ma'am needs a working prototype. The WEEK ladder still holds (09=Android, 10=hardening, 11=packaging, 12=acceptance) — the D-plan is that ladder compressed onto the calendar. Real GitHub dispatch stays fixture/mock-driven until the user's PAT lands (U5b).
+
+| Day | Date | Scope | Status |
+|---|---|---|---|
+| D1 | 2026-10-04 | BYOK on the app (H4): provider select + key store/remove/test, all via the daemon API into the OS secret store · workspace root (user folder or auto-created default) · nvidia-nim preset + live smoke (nemotron replied [OK]) · self-learning v1.5 design locked (below) | ✅ DONE (180/180 tests, live-verified) |
+| D2 | 2026-10-05 | **Self-learning v1.5** (below — demo differentiator) · Capacitor: init, wrap the web UI, secure storage for the device token, LAN pairing to the daemon | 🔜 NEXT |
+| D3 | 2026-10-06 | Android debug APK (emulator/device via `argent-android-emulator-setup` + `capacitor-best-practices` skills) · hardening: no-hidden-retry audit of `@jarvis/github` write paths (OpenMuse rule), reconnect/replay E2E, Lighthouse pass |
+| D4 | 2026-10-07 | Rehearsal: full walkthrough script (pair → feed → swipe → show the learning change the ranking → session → approve → COMPLETED → phone if APK ready), demo data seeding, backup recording, docs |
+
+### Self-learning v1.5 (D2 — the demo differentiator; deterministic + explainable, contract §9/§14)
+
+Current v0: language weights from history + swipes (right boosts, wrong-stack zeroes), "learned from activity" framing. v1.5 upgrades, in priority order:
+
+1. **Outcome feedback loop — the big one.** Today the graph learns from *swipes* (intent). v1.5 makes it learn from *outcomes*: when a session reaches COMPLETED, boost the language/topic weights of the card that produced it, slightly decay on FAILED. This closes Execute → Discover — GitSwipe learns from what you actually finish, not just what you liked. No competitor does this. Small: one function next to `applySwipe`, one journal event, tests proving a completed session measurably changes the next ranking (the WEEK-03 exit-test pattern, replayed on outcomes).
+2. **Topic tags, not just languages.** Skill graph gains topic keywords (labels + title tokens: "parser", "auth", "css"). Right-swipe on a Rust parser card boosts Rust AND parsers. Keeps the explainable reasons ("matches your parser work").
+3. **Recency decay.** Half-life on swipe weights so the feed tracks current interests, not all-time history. One exponent, tested.
+4. *(stretch)* **Fast-skip dampener.** 3+ consecutive left-swipes on similar cards temporarily dampen that similarity — a diversity nudge with an honest reason string.
+
+Post-v1 (parked in SUGGESTIONS): embeddings-based saved-similarity (NVIDIA endpoint already exposes `nvidia/nemotron-3-embed-1b` — our provider embeddings capability can use it), per-repo affinity scores, why-not reading feedback.
+
 ## WEEK-01 task list (✅ DONE 2026-09-24 — 75/75 tests)
+
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|

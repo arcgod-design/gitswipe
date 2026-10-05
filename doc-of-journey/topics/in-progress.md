@@ -1,6 +1,6 @@
-# topics/in-progress.md — current focus
+# topics/in-progress.md - current focus
 
-- **Last completed**: WEEK-08 production web UI (session 16, 2026-10-01) — live-verified 9-step flow: UI loads → pair → feed (swipe cards) → session (SSE + approval card) → COMPLETED. H4 (BYOK editing) view-only; H5 (Puter bridge) PROTO — non-blockers.
-- **Next**: **WEEK-09 — Android via Capacitor on dev**. Read `weeks/WEEK-09.md` + the NEXT-TASKS WEEK-09 table first. Wraps the existing web app; user has Android Studio configured (USER-THING-TO-DO #6).
-- **Also open**: WEEK-06 live tail (needs a machine with `opencode` + BYOK key — U5); PR-lifecycle watch loop ships with it. H5 Puter client-side bridge (post-v1). H4 BYOK editing forms (WEEK-11 polish).
-- **Pointers**: repo-root `SESSION-STATE.md` (human state), `weeks/state/current.json` (machine state), `NEXT-TASKS.md` (board).
+- **Last completed**: D1 of the 4-day demo sprint (session 18, 2026-10-04) — BYOK on the app (key store/remove/test into the OS secret store, nemotron verified live through the app), workspace root (user folder or auto-default), nvidia-nim preset, 180/180.
+- **Next**: **D2 (2026-10-05) — self-learning v1.5 + Capacitor wrap**. Read the NEXT-TASKS 4-day plan first. Skills installed for it: capacitor-best-practices, argent-android-emulator-setup, playwright-best-practices.
+- **Also open**: U5b GitHub PAT (user will provide later — demo runs on seeded feed); Puter parked until after the demo; WEEK-06 live OpenCode tail.
+- **Pointers**: repo-root `SESSION-STATE.md`, `weeks/state/current.json`, `NEXT-TASKS.md` (board + D-plan).

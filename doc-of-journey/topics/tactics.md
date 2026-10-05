@@ -17,3 +17,6 @@
 - **Param vs no-param routes**: check exact-path routes (POST /api/session) BEFORE regex param routes (/api/session/:id) - the regex never matches the bare path, so an exact route nested inside it is dead code.
 - **git show extraction + BOM scan**: after extracting files via git show, always scan for EF BB BF and strip. PowerShell redirect piping adds BOMs silently.
 - **Recount ../ on copy**: relative static-path patterns break when the source file sits at a different directory depth than the file it was copied from. Recount, or anchor from import.meta.url with the verified level count.
+- **settings.json = the user-intent persistence layer**: env overrides stay king (s116 dev discipline), settings.json records what the app UI changed (workRoot, providerId, model), defaults fill the rest. Atomic tmp+rename writes, same as the stores.
+- **Reasoning-model pings**: maxTokens 300+ for any short chat test against reasoning models (nemotron-3 family); check usage vs content before suspecting the parser.
+- **Two input classes by purpose**: .pair-input (uppercase mono, codes) vs .form-input (normal mono, general forms) - pick by whether uppercase display is the intent.

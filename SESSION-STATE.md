@@ -1,32 +1,33 @@
-# SESSION-STATE.md — as of 2026-10-01 (WEEK-08 complete on dev)
+# SESSION-STATE.md — as of 2026-10-04 (session 18: D1 of the 4-day demo sprint)
 
-## Current week
+## Current sprint
 
-**WEEK-08** — ✅ **DONE + live-verified.** Production web UI: pair screen → feed (swipe cards with keyboard nav + explainable reasons) → session (live SSE, approval card, state badge) → workstation report. Design system: same tokens as MVP (slate-900, green accent, Space Grotesk/DM Sans/JetBrains Mono, phosphor icons). H4 (BYOK editing) is view-only; H5 (Puter bridge) remains PROTO — non-blockers.
+**4 days to a fully-working prototype** (show date ~2026-10-08; the ma'am needs a working prototype). D1 ✅ DONE. The WEEK ladder still holds — D-plan maps onto weeks 09-12.
 
 ## Stack state
 
-- Branch: dev. 171/171 tests, typecheck clean, audit 0.
-- 9 packages + web UI on dev (merged from mvp; BOMs fixed).
-- Releases: v0.1.0 → v0.2.1 → v0.3.1 on main. WEEK-08 ready for v0.4.0 merge.
+- Branch: dev. **180/180 tests**, typecheck clean.
+- BYOK is DONE ON THE APP: provider select + key store/remove (OS secret store, DPAPI) + live provider test — nvidia-nim + `nvidia/nemotron-3-super-120b-a12b` verified live through the app ([OK], 1278ms).
+- Workspace root shipped: user folder (e.g. ssoc) or auto-created default; absolute-path validated; shown in Settings + serve banner.
+- NVIDIA key is in the OS store (`provider:nvidia-nim`). ROTATE IT AFTER THE DEMO — it was pasted in chat once. 40 req/min limit noted; rate-budget handling exists in the provider stack.
 
 ## Verified this session
 
-- npm run typecheck → clean
-- npm test → 171/171
-- Live: `jarvisd serve` on 7442 → GET / returns 200 HTML (UI loads without token; pairing screen is the entry point) → CLI pair → HTTP pair → GET /api/feed (3 cards) → POST /api/swipe (3→2) → POST /api/session (RUNNING) → status (WAITING_FOR_APPROVAL) → POST /api/session/:id/approve (granted) → final (COMPLETED) → GET /api/workstation (loopback, git, journal 17, 1 device)
+- `npm run typecheck` → clean · `npm test` → 180/180 (9 new settings tests)
+- Live: serve → pair → GET /api/settings → save provider → POST test → **nemotron replied [OK]** → workroot set → folder created on disk
+- Research: stablyai/orca (competitor + reference) + CopilotKit OpenBot/OpenDots/OpenMuse + Anil-matcha/open-dots — all verdicted in gitresearch.md; 5 orca SUGGESTIONS approved by user; 3 sprint skills installed (capacitor-best-practices, argent-android-emulator-setup, playwright-best-practices)
 
 ## Known pain points
 
-- `git show` piping adds UTF-8 BOMs to extracted files (10 files needed BOM removal). Always scan after cherry-picking.
-- Static file path was wrong (workstation/server.ts is one directory deeper than demo-server.ts; `../../public` not `../../../apps/daemon/public`).
-- Session creation route was unreachable (the `/api/session/:id` regex never matched bare `/api/session`). Lesson: routes with and without path params must be separate checks.
+- Reasoning models burn hidden tokens before visible content: maxTokens 20 and 100 both returned EMPTY replies from nemotron; 300 works. Set test pings to 300+.
+- Daemon default dataDir is `./data` (not `.data`) — the JARVIS_DATA_DIR footgun from errors.md struck again in a smoke script.
+- Global search-replace hit PairScreen's intentional uppercase `.pair-input` — scope replaces to the target component.
 
-## Next concrete steps
+## Next concrete steps (D2 — 2026-10-05)
 
-1. Merge dev → main + tag **v0.4.0** (WEEK-08).
-2. **WEEK-09** next: Android via Capacitor (wrap the web app, secure storage, notifications, offline cache, debug APK).
+1. **Self-learning v1.5** (the demo differentiator, scoped in NEXT-TASKS): outcome feedback (COMPLETED sessions boost the card's language/topic weights — closes Execute→Discover), topic tags beyond languages, recency decay. Prove with the WEEK-03 exit-test pattern: outcome measurably changes the next ranking.
+2. Capacitor: init, wrap apps/web, secure storage for the device token, LAN pairing to the daemon (skills installed; Android Studio confirmed installed).
 
 ## Docs health
 
-All surfaces current; state files updated; daily log 2026-10-01-16.md.
+All surfaces synced this session; state files updated; daily log 2026-10-04-18.md.
