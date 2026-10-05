@@ -28,7 +28,14 @@
 |---|---|---|---|
 | D1 | 2026-10-04 | BYOK on the app (H4): provider select + key store/remove/test, all via the daemon API into the OS secret store · workspace root (user folder or auto-created default) · nvidia-nim preset + live smoke (nemotron replied [OK]) · self-learning v1.5 design locked (below) | ✅ DONE (180/180 tests, live-verified) |
 | D2 | 2026-10-05 | **Self-learning v1.5** (below — demo differentiator) · Capacitor: init, wrap the web UI, secure storage for the device token, LAN pairing to the daemon | 🔜 NEXT |
-| D3 | 2026-10-06 | Android debug APK (emulator/device via `argent-android-emulator-setup` + `capacitor-best-practices` skills) · hardening: no-hidden-retry audit of `@jarvis/github` write paths (OpenMuse rule), reconnect/replay E2E, Lighthouse pass |
+| D3 | 2026-10-06 | Android debug APK (physical phone via USB per user choice; emulator fallback) · **Tailscale transport (user-selected: true internet)** — tailnet IP on laptop + phone, daemon binds the tailnet interface, origin-allowlist extension in the server config (currently hardcoded to loopback origins), phone app pointed at the tailnet URL — note: this is Tailscale-as-network-layer for the demo, NOT the §24 transport-provider integration (that stays post-v1) · hardening: no-hidden-retry audit of `@jarvis/github` write paths (OpenMuse rule), reconnect/replay E2E, Lighthouse pass |
+
+### User's pre-D3 checklist (from their answers, 2026-10-04)
+
+1. Android Studio SDK Tools: update Build-Tools 37 + Platform-Tools 37.0.1, install **Command-line Tools (latest)** + **Google USB Driver** (+ Emulator hypervisor driver as fallback) — API 34 platform already installed.
+2. Phone: USB debugging ON, plug into the laptop.
+3. GitHub fine-grained PAT via `npm run daemon -- secret set github:token` (stdin — never in chat). Scopes: Metadata/Issues/Pull requests, read-only.
+4. Tailscale: install on laptop + phone, same account, note the laptop's 100.x.y.z tailnet IP.
 | D4 | 2026-10-07 | Rehearsal: full walkthrough script (pair → feed → swipe → show the learning change the ranking → session → approve → COMPLETED → phone if APK ready), demo data seeding, backup recording, docs |
 
 ### Self-learning v1.5 (D2 — the demo differentiator; deterministic + explainable, contract §9/§14)
