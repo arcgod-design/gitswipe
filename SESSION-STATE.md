@@ -1,29 +1,28 @@
-# SESSION-STATE.md — as of 2026-10-07 (session 19: D2 self-learning landed)
+# SESSION-STATE.md — as of 2026-10-07 evening (session 20: ADR 0009 + D2 Android done)
 
-## Calendar reality (brutal)
+## Current sprint
 
-System clock says **2026-10-07**. The D-plan (written 2026-10-04) had D2=Oct 5, D3=Oct 6, D4=Oct 7. The research sessions + SDK detours consumed the calendar. If the show is Oct 8, TODAY must carry: Capacitor wrap + debug APK + Tailscale transport + essential hardening. Rehearsal compresses into the hours before the show. User must confirm the demo date.
+Review Oct 9. D2 COMPLETE both halves (self-learning v1.5 + APK). Transport re-decided per user push: **ADR 0009** — Tailscale dropped (the 1000-min fear was factually wrong, but the UX vision objection was right); demo via **Cloudflare Quick Tunnel** + phone-hotspot fallback; product via **`jarvisd share` (QR) then our own relay (v1.x)**.
 
 ## Stack state
 
-- Branch: dev. **189/189 tests**, typecheck clean.
-- **Self-learning v1.5 SHIPPED**: outcome feedback (COMPLETED/FAILED sessions update the skill graph - finishing beats liking), topic tags (labels + title tokens, domain_match reasons), recency decay (30-day half-life). Live-verified: session COMPLETED -> "skill graph updated" in the serve console.
-- BYOK on the app + workspace root + nvidia-nim + nemotron: live-verified (D1).
-- Android SDK: fully provisioned (cmdline-tools hand-registered with package.xml after the IDE's HTTP downloader kept corrupting zips).
+- Branch: dev. 189/189 tests, typecheck clean. APK: apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk (4.5 MB).
+- Shipped + live-verified: BYOK on app, workspace root, nemotron ([OK] reply), self-learning v1.5 (outcome hook fires on COMPLETED).
+- Daemon security posture UNCHANGED: loopback default, origin lock, pairing + device tokens. The tunnel makes the daemon SAFER for the demo (stays loopback-bound; only cloudflared reaches it).
 
-## Verified this session
+## D3 (Oct 8) concrete steps
 
-- npm run typecheck clean; npm test 189/189 (10 new v1.5 tests)
-- Live: pair -> session -> approve -> COMPLETED -> outcome hook fired -> feed healthy
-- The WEEK-03 exit test replayed on outcomes: a completed session measurably changes the next ranking
+1. Daemon: configurable `bind` + `allowedOrigins` (settings.json + env override; deny-unless-allowed preserved) + tests.
+2. cloudflared download + Quick Tunnel runbook; verify phone-on-mobile-data -> tunnel URL -> pair -> feed.
+3. Hotspot fallback: laptop joins phone hotspot, bind LAN IP, verify pairing.
+4. APK install on the phone (adb) once USB debugging is on.
+5. PAT: rerun the store command (token reported stored but absent), `github check`, then real-repo candidates in the feed (fixture fallback stays).
+6. Hardening: no-hidden-retry audit (@jarvis/github writes), replay E2E, Lighthouse.
 
-## Next concrete steps (today - the Android half of D2)
+## Known blockers (user)
 
-1. Capacitor: init in apps/mobile, wrap the built web UI, secure storage for the device token, point at the tailnet URL. Skills ready: capacitor-best-practices, argent-android-emulator-setup.
-2. Debug APK via gradle (build-tools 34/35 present; API 34 target).
-3. Tailscale: daemon origin-allowlist + bind config extension; phone + laptop on the tailnet.
-4. PAT + demo feed if the token arrives.
+- PAT rerun (U5b). Phone USB debugging. Rotate NVIDIA key post-demo.
 
 ## Docs health
 
-All surfaces synced; daily 2026-10-07-19.md; state sessions/2026-10-07-19.json.
+ADR 0009 + docs/TRANSPORT-DECISION.md added; NEXT-TASKS D3/D4 re-scoped; SUGGESTIONS relay promoted; USER-THING-TO-DO rows 6/5b/9 updated; state files current.

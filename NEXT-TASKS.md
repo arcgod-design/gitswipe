@@ -28,14 +28,15 @@
 |---|---|---|---|
 | D1 | 2026-10-04 | BYOK on the app (H4): provider select + key store/remove/test, all via the daemon API into the OS secret store · workspace root (user folder or auto-created default) · nvidia-nim preset + live smoke (nemotron replied [OK]) · self-learning v1.5 design locked (below) | ✅ DONE (180/180 tests, live-verified) |
 | D2 | 2026-10-05 | **Self-learning v1.5** (below — demo differentiator) · Capacitor: init, wrap the web UI, secure storage for the device token, LAN pairing to the daemon | 🔜 NEXT |
-| D3 | 2026-10-06 | Android debug APK (physical phone via USB per user choice; emulator fallback) · **Tailscale transport (user-selected: true internet)** — tailnet IP on laptop + phone, daemon binds the tailnet interface, origin-allowlist extension in the server config (currently hardcoded to loopback origins), phone app pointed at the tailnet URL — note: this is Tailscale-as-network-layer for the demo, NOT the §24 transport-provider integration (that stays post-v1) · hardening: no-hidden-retry audit of `@jarvis/github` write paths (OpenMuse rule), reconnect/replay E2E, Lighthouse pass |
+| D3 | 2026-10-08 | Android: install APK on the physical phone (adb) + LAN/tailnet→**tunnel** verification · **Transport per ADR 0009: Cloudflare Quick Tunnel (primary, phone installs nothing, daemon stays loopback) + phone-hotspot LAN (offline fallback)** — daemon work: configurable bind + configurable origin allowlist (both paths share it) · PAT verify + real-repo feed (if token stored) · hardening: no-hidden-retry audit of `@jarvis/github` write paths (OpenMuse rule), reconnect/replay E2E, Lighthouse pass |
+| D4 | 2026-10-09 (review day) | Rehearsal: full walkthrough (pair → feed → swipe → show the learning change the ranking → session → approve → COMPLETED → phone via tunnel), demo data seeding, backup recording, tunnel up/down runbook, docs |
 
-### User's pre-D3 checklist (from their answers, 2026-10-04)
+### User's pre-D3 checklist (updated 2026-10-07, ADR 0009 — Tailscale REMOVED)
 
-1. Android Studio SDK Tools: update Build-Tools 37 + Platform-Tools 37.0.1, install **Command-line Tools (latest)** + **Google USB Driver** (+ Emulator hypervisor driver as fallback) — API 34 platform already installed.
+1. ~~Android SDK setup~~ — DONE (all components verified on disk; IDE display fixed via hand-written package.xml).
 2. Phone: USB debugging ON, plug into the laptop.
-3. GitHub fine-grained PAT via `npm run daemon -- secret set github:token` (stdin — never in chat). Scopes: Metadata/Issues/Pull requests, read-only.
-4. Tailscale: install on laptop + phone, same account, note the laptop's 100.x.y.z tailnet IP.
+3. GitHub fine-grained PAT via `npm run daemon -- secret set github:token` (stdin — never in chat). Scopes: Metadata/Issues/Pull requests, read-only. **The token was reported stored but is NOT in the store — rerun the command.**
+4. ~~Tailscale~~ — REMOVED per ADR 0009. Nothing to install. Demo runs via Cloudflare Quick Tunnel (laptop-only binary, no account) with the phone hotspot as offline fallback.
 | D4 | 2026-10-07 | Rehearsal: full walkthrough script (pair → feed → swipe → show the learning change the ranking → session → approve → COMPLETED → phone if APK ready), demo data seeding, backup recording, docs |
 
 ### Self-learning v1.5 (D2 — the demo differentiator; deterministic + explainable, contract §9/§14)
@@ -48,6 +49,11 @@ Current v0: language weights from history + swipes (right boosts, wrong-stack ze
 4. *(stretch)* **Fast-skip dampener.** 3+ consecutive left-swipes on similar cards temporarily dampen that similarity — a diversity nudge with an honest reason string.
 
 Post-v1 (parked in SUGGESTIONS): embeddings-based saved-similarity (NVIDIA endpoint already exposes `nvidia/nemotron-3-embed-1b` — our provider embeddings capability can use it), per-repo affinity scores, why-not reading feedback.
+
+### Post-review transport work (ADR 0009, v1.0)
+
+- `jarvisd share` — cloudflared as a subprocess; prints the public URL + a QR code; the whole remote setup becomes one terminal command + one camera scan. No third-party accounts, nothing installed on the phone beyond our APK.
+- v1.x: our own thin relay (contract §24 secure relay; orca `relay-contract` reference; E2E crypto; separate ADR for hosting/cost). This is the walla-done endgame.
 
 ## WEEK-01 task list (✅ DONE 2026-09-24 — 75/75 tests)
 

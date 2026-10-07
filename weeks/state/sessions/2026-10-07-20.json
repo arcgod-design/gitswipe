@@ -1,0 +1,10 @@
+{
+  "date": "2026-10-07 (session 20)",
+  "in_flight": "demo sprint - D3 next (Oct 8), review Oct 9",
+  "d2": "complete (self-learning v1.5 + Capacitor APK 4.5MB)",
+  "adr0009": "locked - Tailscale dropped; demo=Cloudflare Quick Tunnel + hotspot fallback; product=jarvisd share (QR) then owned relay v1.x",
+  "verified": ["APK BUILD SUCCESSFUL", "web assets + config inside APK verified"],
+  "files_touched": ["apps/mobile/* (new)", "apps/web/src/App.tsx (workstation URL + localStorage)", ".gitignore", "docs/TRANSPORT-DECISION.md (new)", "doc-of-journey/decisions/0009-remote-transport.md (new)"],
+  "next_step": "D3: bind + allowedOrigins extension, cloudflared runbook, APK install, PAT rerun + real-repo feed, hardening, Lighthouse",
+  "user_blockers": ["PAT rerun (U5b)", "phone USB debugging", "rotate NVIDIA key post-demo"]
+}
