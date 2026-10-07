@@ -28,9 +28,15 @@ export interface WorkstationServerHandle {
   close(): Promise<void>;
 }
 
-const ALLOWED_ORIGINS = (port: number): string[] => [
+const ALLOWED_ORIGINS = (port: number, extra: readonly string[]): string[] => [
   `http://127.0.0.1:${port}`,
   `http://localhost:${port}`,
+  `https://127.0.0.1:${port}`,
+  `https://localhost:${port}`,
+  "capacitor://localhost",
+  "https://localhost",
+  "http://localhost",
+  ...extra,
 ];
 
 export interface ProductionFeedEngine {
@@ -58,6 +64,10 @@ export function startWorkstationServer(deps: {
   secretStore?: SecretStore;
 }): Promise<WorkstationServerHandle> {
   const { config, identity, pairing, journal, queue, health, feedEngine, sessionManager, secretStore } = deps;
+  const origins = ALLOWED_ORIGINS(config.port, [
+    ...(loadSettings(config.dataDir).allowedOrigins ?? []),
+    ...config.allowedOrigins,
+  ]);
 
   const server = createServer((req, res) => {
     void handle(req, res).catch((err: unknown) => {
@@ -68,16 +78,32 @@ export function startWorkstationServer(deps: {
 
   async function handle(req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse): Promise<void> {
     const origin = req.headers.origin;
-    const url = new URL(req.url ?? "/", "http://127.0.0.1");
+    const originAllowed = origin !== undefined && origins.includes(origin);
+    const corsHeaders: Record<string, string> = originAllowed && origin !== undefined
+      ? { "Access-Control-Allow-Origin": origin, Vary: "Origin" }
+      : {};
     const respond = (status: number, body: unknown, headers: Record<string, string> = {}): void => {
-      res.writeHead(status, { "Content-Type": "application/json", ...headers });
+      res.writeHead(status, { "Content-Type": "application/json", ...corsHeaders, ...headers });
       res.end(JSON.stringify(body));
     };
 
-    if (origin !== undefined && !ALLOWED_ORIGINS(config.port).includes(origin)) {
+    if (req.method === "OPTIONS" && originAllowed) {
+      res.writeHead(204, {
+        ...corsHeaders,
+        "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Authorization, Content-Type",
+        "Access-Control-Max-Age": "600",
+      });
+      res.end();
+      return;
+    }
+
+    if (origin !== undefined && !originAllowed) {
       respond(403, { error: "origin not allowed" });
       return;
     }
+
+    const url = new URL(req.url ?? "/", "http://127.0.0.1");
 
     if (req.method === "GET" && url.pathname === "/healthz") {
       respond(200, { ok: true, protocol: WORKSTATION_PROTOCOL, version: WORKSTATION_PROTOCOL_VERSION });
@@ -139,7 +165,7 @@ export function startWorkstationServer(deps: {
     }
 
     if (req.method === "GET" && url.pathname === "/api/events") {
-      await streamEvents(req, res, url);
+      await streamEvents(req, res, url, corsHeaders);
       return;
     }
 
@@ -332,7 +358,7 @@ export function startWorkstationServer(deps: {
         const action = sessionMatch[3] as "events" | "approve" | undefined;
 
         if (action === "events" && req.method === "GET") {
-          await streamSessionEvents(res, url, sessionId);
+          await streamSessionEvents(res, url, sessionId, corsHeaders);
           return;
         }
         if (action === "approve" && req.method === "POST") {
@@ -403,14 +429,14 @@ export function startWorkstationServer(deps: {
     res.end(readFileSync(target));
   }
 
-  async function streamSessionEvents(res: import("node:http").ServerResponse, url: URL, sessionId: string): Promise<void> {
+  async function streamSessionEvents(res: import("node:http").ServerResponse, url: URL, sessionId: string, corsHeaders: Record<string, string>): Promise<void> {
     const from = Number.parseInt(url.searchParams.get("from") ?? "0", 10);
     let cursor = Number.isNaN(from) ? 0 : from;
     let stopped = false;
     res.on("close", () => {
       stopped = true;
     });
-    res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache" });
+    res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", ...corsHeaders });
     const send = (envelope: unknown): void => {
       res.write(`data: ${JSON.stringify(envelope)}\n\n`);
     };
@@ -432,7 +458,7 @@ export function startWorkstationServer(deps: {
     poll();
   }
 
-  async function streamEvents(req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse, url: URL): Promise<void> {
+  async function streamEvents(req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse, url: URL, corsHeaders: Record<string, string>): Promise<void> {
     const from = Number.parseInt(url.searchParams.get("from") ?? "0", 10);
     let cursor = Number.isNaN(from) ? 0 : from;
     let stopped = false;
@@ -442,6 +468,7 @@ export function startWorkstationServer(deps: {
     res.writeHead(200, {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
+      ...corsHeaders,
     });
     const send = (envelope: unknown): void => {
       res.write(`data: ${JSON.stringify(envelope)}\n\n`);

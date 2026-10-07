@@ -227,3 +227,61 @@ describe("settings API routes", () => {
     expect(loadSettings(dataDir).workRoot).toBe(custom);
   });
 });
+
+describe("origin allowlist + CORS (phone WebView is a cross-origin client, ADR 0009)", () => {
+  it("capacitor origin: preflight gets 204 + allow headers; authed GET gets CORS headers", async () => {
+    const pre = await fetch(`${base}/api/settings`, {
+      method: "OPTIONS",
+      headers: { Origin: "capacitor://localhost", "Access-Control-Request-Method": "POST" },
+    });
+    expect(pre.status).toBe(204);
+    expect(pre.headers.get("Access-Control-Allow-Origin")).toBe("capacitor://localhost");
+    expect(pre.headers.get("Access-Control-Allow-Headers")).toContain("Authorization");
+
+    const get = await fetch(`${base}/healthz`, { headers: { Origin: "capacitor://localhost" } });
+    expect(get.status).toBe(200);
+    expect(get.headers.get("Access-Control-Allow-Origin")).toBe("capacitor://localhost");
+  });
+
+  it("unknown origins stay locked out (403, s149 preserved)", async () => {
+    const res = await fetch(`${base}/healthz`, { headers: { Origin: "https://evil.example" } });
+    expect(res.status).toBe(403);
+  });
+
+  it("origins from settings.json are honored after restart", async () => {
+    const port = await freePort();
+    const dir = mkdtempSync(join(tmpdir(), "jvs-worigins-"));
+    try {
+      saveSettings(dir, { allowedOrigins: ["https://demo.example"] });
+      const config = loadConfig({ env: { JARVIS_PORT: String(port), JARVIS_DATA_DIR: dir } });
+      const handle2 = await startWorkstationServer({
+        config,
+        identity: loadOrCreateIdentity(config.dataDir),
+        pairing: new PairingService(config.dataDir, config.pairingTtlMs),
+        journal: new WorkstationJournal(journalPath(config.dataDir)),
+        queue: new DurableQueue(queuePath(config.dataDir)),
+        health: () => gatherHealth(config.dataDir),
+      });
+      try {
+        const ok = await fetch(`http://127.0.0.1:${port}/healthz`, {
+          headers: { Origin: "https://demo.example" },
+        });
+        expect(ok.status).toBe(200);
+        expect(ok.headers.get("Access-Control-Allow-Origin")).toBe("https://demo.example");
+        const denied = await fetch(`http://127.0.0.1:${port}/healthz`, {
+          headers: { Origin: "https://other.example" },
+        });
+        expect(denied.status).toBe(403);
+      } finally {
+        await handle2.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("env-configured origins land in config (JARVIS_ALLOWED_ORIGINS)", () => {
+    const cfg = loadConfig({ env: { JARVIS_ALLOWED_ORIGINS: "https://a.example, https://b.example" } });
+    expect(cfg.allowedOrigins).toEqual(["https://a.example", "https://b.example"]);
+  });
+});

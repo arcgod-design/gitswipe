@@ -211,6 +211,21 @@ async function serveCommand(): Promise<void> {
       `  journal: ${journal.latest()} events recovered | queue: ${queue.list().length} tasks recovered`,
       `  UI: ${feedEngine !== undefined ? "feed + sessions wired" : "feed engine unavailable"}`,
       `  workspace: ${workRoot.path}${workRoot.isDefault ? " (default - set a folder in Settings)" : ""}`,
+    ].join("\n"),
+  );
+  if (config.bind !== "127.0.0.1" && config.bind !== "localhost" && config.bind !== "::1") {
+    const os = await import("node:os");
+    const lanIps = Object.values(os.networkInterfaces())
+      .flat()
+      .filter((n): n is import("node:os").NetworkInterfaceInfo => n !== undefined && n !== null && !n.internal && n.family === "IPv4")
+      .map((n) => n.address);
+    for (const ip of lanIps) {
+      process.stdout.write(`\n  LAN: http://${ip}:${config.port}  <- enter this in the mobile app`);
+    }
+    process.stdout.write("\n");
+  }
+  process.stdout.write(
+    [
       "",
       "  Pair a device: jarvisd pair   then POST /api/pair from the client.",
       "  Stop with Ctrl+C.",

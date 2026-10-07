@@ -6,6 +6,7 @@ export const ConfigSchema = z.object({
   dataDir: z.string().default("./data"),
   logLevel: z.enum(["debug", "info", "warn", "error"]).default("info"),
   pairingTtlMs: z.number().int().positive().default(10 * 60 * 1_000),
+  allowedOrigins: z.array(z.string().min(1)).default([]),
 });
 
 export type WorkstationConfig = z.infer<typeof ConfigSchema>;
@@ -23,6 +24,9 @@ export function loadConfig(sources: ConfigSources = {}): WorkstationConfig {
     dataDir: env.JARVIS_DATA_DIR,
     logLevel: env.JARVIS_LOG_LEVEL,
     pairingTtlMs: undefined,
+    allowedOrigins: env.JARVIS_ALLOWED_ORIGINS !== undefined
+      ? env.JARVIS_ALLOWED_ORIGINS.split(",").map((s) => s.trim()).filter((s) => s.length > 0)
+      : undefined,
     ...sources.overrides,
   });
   return parsed;

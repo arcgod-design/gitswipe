@@ -5,6 +5,7 @@ export interface WorkstationSettings {
   workRoot?: string;
   providerId?: string;
   model?: string;
+  allowedOrigins?: string[];
 }
 
 export function defaultWorkRoot(dataDir: string): string {
@@ -18,6 +19,9 @@ export function loadSettings(dataDir: string): WorkstationSettings {
       workRoot: typeof raw.workRoot === "string" ? raw.workRoot : undefined,
       providerId: typeof raw.providerId === "string" ? raw.providerId : undefined,
       model: typeof raw.model === "string" ? raw.model : undefined,
+      allowedOrigins: Array.isArray(raw.allowedOrigins)
+        ? raw.allowedOrigins.filter((o) => typeof o === "string" && o.length > 0)
+        : undefined,
     };
   } catch {
     return {};
