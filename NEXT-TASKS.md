@@ -151,3 +151,18 @@ Post-v1 (parked in SUGGESTIONS): embeddings-based saved-similarity (NVIDIA endpo
 | U6 | Android SDK path configured (WEEK-09 Capacitor builds) | USER | WEEK-09 |
 | U7 | Designate the contribution workspace root folder (like ssoc, but GitSwipe-owned) | USER | WEEK-06 setup |
 | U8 | Review the parked SUGGESTIONS.md items (semgrep gate, worktree tool manifest, CLI-Anything wishlist source, patchwork/OpenHands adapters) — promote or kill each | USER | post-v1 planning |
+
+### Demo-day runbook (hotspot path, ADR 0009 - verified 2026-10-07)
+
+One-time (BEFORE the review, on the laptop, admin PowerShell - Windows blocks inbound node.exe on Public networks, which hotspots usually are):
+
+```powershell
+New-NetFirewallRule -DisplayName "GitSwipe workstation" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 7420
+```
+
+Review day sequence:
+1. Phone hotspot ON; laptop joins it.
+2. `set JARVIS_BIND=0.0.0.0` (or `$env:JARVIS_BIND="0.0.0.0"`) then `npm run daemon -- serve` - the banner prints `LAN: http://<ip>:7420 <- enter this in the mobile app`.
+3. `npm run daemon -- pair` - pairing code.
+4. Phone app: enter the LAN URL + the code. Done.
+5. Optional away-from-lab path: `cloudflared tunnel --url http://127.0.0.1:7420` and use the printed https URL instead (daemon stays loopback-bound).
