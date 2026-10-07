@@ -10,3 +10,11 @@ coverage/
 .DS_Store
 data/
 *.local
+
+# mobile android build outputs (the platform source IS committed)
+apps/mobile/android/.gradle/
+apps/mobile/android/build/
+apps/mobile/android/app/build/
+apps/mobile/android/capacitor-cordova-android-plugins/build/
+apps/mobile/android/local.properties
+apps/mobile/.gradle/

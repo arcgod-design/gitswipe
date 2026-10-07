@@ -59,24 +59,34 @@ const token = {
     const params = new URLSearchParams(window.location.search);
     const fromUrl = params.get("token");
     if (fromUrl !== null && fromUrl.length > 0) {
-      sessionStorage.setItem("gitswipe_token", fromUrl);
+      localStorage.setItem("gitswipe_token", fromUrl);
       params.delete("token");
       const next = params.toString();
       window.history.replaceState(null, "", next.length > 0 ? `?${next}` : window.location.pathname);
     }
-    return sessionStorage.getItem("gitswipe_token");
+    return localStorage.getItem("gitswipe_token");
   },
   save(t: string): void {
-    sessionStorage.setItem("gitswipe_token", t);
+    localStorage.setItem("gitswipe_token", t);
   },
   clear(): void {
-    sessionStorage.removeItem("gitswipe_token");
+    localStorage.removeItem("gitswipe_token");
+  },
+};
+
+const base = {
+  read(): string {
+    const stored = localStorage.getItem("gitswipe_base");
+    return stored !== null && stored.length > 0 ? stored : "";
+  },
+  save(url: string): void {
+    localStorage.setItem("gitswipe_base", url.trim().replace(/\/+$/, ""));
   },
 };
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
   const t = token.read();
-  const res = await fetch(path, {
+  const res = await fetch(base.read() + path, {
     ...init,
     headers: {
       ...(init?.headers ?? {}),
@@ -100,7 +110,7 @@ function openStream(
   let cancelled = false;
   void (async () => {
     try {
-      const res = await fetch(`/api/session/${sessionId}/events?from=0`, {
+      const res = await fetch(`${base.read()}/api/session/${sessionId}/events?from=0`, {
         headers: t !== null ? { Authorization: `Bearer ${t}` } : {},
       });
       if (!res.ok || res.body === null) return;
@@ -167,6 +177,7 @@ function reasonText(r: FeedReason): string {
 function PairScreen({ onPaired }: { onPaired: (t: string) => void }): React.ReactNode {
   const [code, setCode] = useState("");
   const [label, setLabel] = useState("browser");
+  const [workstationUrl, setWorkstationUrl] = useState(base.read());
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -174,6 +185,7 @@ function PairScreen({ onPaired }: { onPaired: (t: string) => void }): React.Reac
     setBusy(true);
     setError(null);
     try {
+      base.save(workstationUrl);
       const result = await call<{ deviceId: string; token: string }>("/api/pair", {
         method: "POST",
         body: JSON.stringify({ code, label }),
@@ -195,11 +207,24 @@ function PairScreen({ onPaired }: { onPaired: (t: string) => void }): React.Reac
         </span>
       </header>
       <div className="card" style={{ padding: 32, marginTop: 24 }}>
-        <h2 className="screen-title">Pair your browser</h2>
+        <h2 className="screen-title">Pair your device</h2>
         <p style={{ color: "var(--text-muted)", marginTop: 8 }}>
           Run <code className="mono-value">jarvisd pair</code> on your workstation, then enter the code below.
           The code is single-use and expires in 10 minutes.
         </p>
+        <div className="form-row">
+          <label htmlFor="workstation-url">Workstation URL (mobile only — leave empty in the workstation browser)</label>
+          <input
+            id="workstation-url"
+            className="form-input"
+            type="url"
+            inputMode="url"
+            placeholder="http://100.x.y.z:7420"
+            value={workstationUrl}
+            onChange={(e) => setWorkstationUrl(e.target.value)}
+            aria-label="workstation url"
+          />
+        </div>
         <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
           <input
             className="pair-input"
