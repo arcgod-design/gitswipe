@@ -187,7 +187,10 @@ async function serveCommand(): Promise<void> {
   const workRoot = resolveWorkRoot(config.dataDir);
 
   const feedEngine = await buildProductionFeed(config.dataDir);
-  const sessionManager = await buildProductionSessions(config.dataDir, journal, identity);
+  const sessionManager = await buildProductionSessions(config.dataDir, journal, identity, (key, result) => {
+    feedEngine?.outcome(key, result);
+    process.stdout.write(`  outcome: session ${result} on ${key} - skill graph updated\n`);
+  });
 
   const handle = await startWorkstationServer({
     config,
@@ -310,8 +313,8 @@ async function buildProductionFeed(dataDir: string): Promise<import("./workstati
     const discovery = await import("@jarvis/discovery");
     const buildCandidate = discovery.buildCandidate;
     const rankFeed = discovery.rankFeed;
-    const buildFeedPage = discovery.buildFeedPage;
     const applySwipe = discovery.applySwipe;
+    const applyOutcome = discovery.applyOutcome;
     const emptyGraph = discovery.emptyGraph;
     const seedFromLanguages = discovery.seedFromLanguages;
     const JsonlSwipeStore = discovery.JsonlSwipeStore;
@@ -331,10 +334,20 @@ async function buildProductionFeed(dataDir: string): Promise<import("./workstati
         const candidate = candidateByKey.get(key);
         if (candidate !== undefined) {
           swipeStore.append({ candidate_key: key, action: action as never, at: new Date().toISOString() });
-          graph = applySwipe(graph, { candidate_key: key, action: action as never, at: new Date().toISOString() }, candidate.language, candidate.labels);
+          graph = applySwipe(graph, { candidate_key: key, action: action as never, at: new Date().toISOString() }, candidate.language, candidate.labels, candidate.title);
         }
         const outcome = rankFeed(candidates, graph, swipeStore.readAll());
         return { feed: outcome.feed.map(discovery.toFeedCard), whyNot: outcome.whyNot.map(discovery.toFeedCard), generatedAt: new Date().toISOString() };
+      },
+      outcome(key: string, result: string) {
+        const candidate = candidateByKey.get(key);
+        if (candidate === undefined) return;
+        graph = applyOutcome(graph, {
+          language: candidate.language,
+          labels: candidate.labels,
+          title: candidate.title,
+          result: result === "failed" ? "failed" : "completed",
+        });
       },
       reset() {
         swipeStore.replaceAll([]);
@@ -362,7 +375,7 @@ function buildFixtureCandidates(buildCandidate: (item: import("@jarvis/github").
   return issues.map((item) => buildCandidate(item, repos.get(item.repo_full_name) ?? null));
 }
 
-async function buildProductionSessions(dataDir: string, journal: import("./workstation/journal.js").WorkstationJournal, identity: import("./workstation/identity.js").DeviceIdentity): Promise<import("./workstation/server.js").ProductionSessionManager | undefined> {
+async function buildProductionSessions(dataDir: string, journal: import("./workstation/journal.js").WorkstationJournal, identity: import("./workstation/identity.js").DeviceIdentity, onOutcome?: (candidateKey: string, result: "completed" | "failed") => void): Promise<import("./workstation/server.js").ProductionSessionManager | undefined> {
   try {
     const agents = await import("@jarvis/agents");
     const discovery = await import("@jarvis/discovery");
@@ -376,6 +389,19 @@ async function buildProductionSessions(dataDir: string, journal: import("./works
     const gateway = new agents.AgentGateway({ adapter, journal, checkpoints });
     type SessionLike = { currentState(): string; pendingApproval(): unknown; decide(approve: boolean): Promise<{ ok: boolean; reason?: string }> };
     const sessions = new Map<string, SessionLike>();
+    const notified = new Set<string>();
+
+    const watchOutcome = (session: import("@jarvis/agents").GatewaySession, id: string, candidateKey: string): void => {
+      session.subscribe(() => {
+        if (notified.has(id)) return;
+        const state = session.currentState();
+        if (state !== "COMPLETED" && state !== "FAILED") return;
+        notified.add(id);
+        if (onOutcome !== undefined) {
+          onOutcome(candidateKey, state === "COMPLETED" ? "completed" : "failed");
+        }
+      });
+    };
 
     return {
       async createSession(candidateKey: string) {
@@ -395,6 +421,7 @@ async function buildProductionSessions(dataDir: string, journal: import("./works
         });
         const id = session.jarvisSession().jarvis_session_id;
         sessions.set(id, session);
+        watchOutcome(session, id, candidateKey);
         return { sessionId: id, state: session.currentState() };
       },
       getSession(id: string) {

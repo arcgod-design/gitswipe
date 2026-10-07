@@ -36,6 +36,7 @@ const ALLOWED_ORIGINS = (port: number): string[] => [
 export interface ProductionFeedEngine {
   feed(): { feed: FeedCard[]; whyNot: FeedCard[]; generatedAt: string };
   swipe(key: string, action: string): { feed: FeedCard[]; whyNot: FeedCard[]; generatedAt: string };
+  outcome(key: string, result: string): void;
   reset(): void;
 }
 

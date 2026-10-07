@@ -2,7 +2,7 @@ import type { RankingReason } from "@jarvis/protocol";
 import type { Candidate } from "./candidate.js";
 import { daysSince, issueClarity } from "./candidate.js";
 import type { SkillGraph } from "./skills.js";
-import { skillMatch } from "./skills.js";
+import { skillMatch, topicMatch, topicTags } from "./skills.js";
 import type { SwipeRecord } from "./swipes.js";
 
 export interface RankedCard {
@@ -46,12 +46,21 @@ export function rankFeed(
       const reasons: RankingReason[] = [];
       let score = 0;
 
-      const match = skillMatch(graph, candidate.language);
+      const match = skillMatch(graph, candidate.language, { now });
       score += match * 0.45;
       if (match >= 0.6) {
         reasons.push({ type: "skill_match", value: round(match), positive: true });
       } else if (graph.rejectedLanguages[candidate.language ?? ""] !== undefined) {
         reasons.push({ type: "skill_match", value: round(match), positive: false });
+      }
+
+      const topics = topicTags(candidate.labels, candidate.title);
+      const tm = topicMatch(graph, topics, { now });
+      if (tm.score > 0) {
+        score += tm.score * 0.15;
+        if (tm.score >= 0.25) {
+          reasons.push({ type: "domain_match", value: tm.matched.slice(0, 3).join(", "), positive: true });
+        }
       }
 
       const clarity = issueClarity(candidate);
