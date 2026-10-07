@@ -2,7 +2,7 @@
 
 > Personal engineering agent network: **discover** GitHub work worth doing, **decide** via a swipe feed with evidence, **execute** on your own PC through agents like OpenCode, **supervise** everything from your phone or browser. Provider-agnostic AI (BYOK first-class, Puter optional, local models first-class). Self-hostable. Local-first. (Internal codename: Jarvis — you'll see it in package names and the wire protocol.)
 
-**Status: dev ladder WEEK-00..05 + 07 + 08 complete, WEEK-06 deterministic core done (live OpenCode tail pending). 180 tests, CI-verified on Linux runners. Live-verified: the production web UI end-to-end (pair → feed → swipe → session → approve → COMPLETED) and BYOK end-to-end (NVIDIA NIM key stored via the app into the OS secret store, `nvidia/nemotron-3-super-120b-a12b` test ping replied live). On a 4-day demo sprint: D2 self-learning v1.5 + Android wrap → D3 debug APK + hardening → D4 rehearsal.** This is an active build, not a finished product. The honest capability ledger lives in [`PROJECT_STATUS.md`](PROJECT_STATUS.md) — read it before assuming anything works. The full product spec is the binding contract at [`docs/source/JARVIS_PRODUCTION_BUILD_PROMPT.md`](docs/source/JARVIS_PRODUCTION_BUILD_PROMPT.md). Releases: `v0.1.0` engines → `v0.2.0` workstation daemon → `v0.3.1` agent gateway + security → `v0.4.0` production web UI → `v0.4.1` doc sync.
+**Status: demo sprint for the Oct 9 review - self-learning v1.5 (outcome feedback, topic tags, recency decay), BYOK on the app, workspace root, and the Android APK (4.5 MB) all shipped and live-verified; 193 tests, typecheck clean; remote access per ADR 0009 (hotspot primary, tunnel secondary, owned relay v1.x).** This is an active build, not a finished product. The honest capability ledger lives in [`PROJECT_STATUS.md`](PROJECT_STATUS.md) — read it before assuming anything works. The full product spec is the binding contract at [`docs/source/JARVIS_PRODUCTION_BUILD_PROMPT.md`](docs/source/JARVIS_PRODUCTION_BUILD_PROMPT.md). Releases: `v0.1.0` engines → `v0.2.0` workstation daemon → `v0.3.1` agent gateway + security → `v0.4.0` production web UI → `v0.4.1` doc sync.
 
 ## What exists right now (WORKING, tested)
 
@@ -23,6 +23,10 @@
 ## Pitch demo
 
 The `mvp` branch carries a complete pitch demo (`docs/MVP-PLAN.md`): `npm install && npm run build:web && npm run demo` → swipe feed → task contract → live mock-agent session with the real approval gate → PR-draft summary → demo reset. Fixture data only, clearly labeled, isolated from real credentials.
+
+## Setup
+
+Full step-by-step for both platforms lives in [startup_and_setup_guide.md](startup_and_setup_guide.md) - laptop (workstation) and mobile (supervisor app), separately, including the phone-hotspot pairing flow and troubleshooting.
 
 ## Development
 

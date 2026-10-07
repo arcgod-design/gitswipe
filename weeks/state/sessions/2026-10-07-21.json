@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-07 (session 21, night)",
+  "in_flight": "demo sprint - D3 tail, review Oct 9 (lab, hotspot)",
+  "transport_core": "done (CORS preflight + allow headers + SSE headers + capacitor origins + settings/env allowlists + LAN banner; live-verified)",
+  "verified": [
+    "npm run typecheck -> clean",
+    "npm test -> 193/193 (4 new origin/CORS tests)",
+    "live: OPTIONS 204 ACAO echo; cross-origin pair+feed 200; evil origin 403; LAN banner URL"
+  ],
+  "files_touched": [
+    "apps/daemon/src/workstation/config.ts (allowedOrigins)",
+    "apps/daemon/src/workstation/server.ts (CORS + OPTIONS + SSE headers)",
+    "apps/daemon/src/workstation/settings.ts (allowedOrigins field)",
+    "apps/daemon/src/index.ts (LAN banner)",
+    "apps/daemon/test/workstation/settings.test.ts (4 tests)",
+    "startup_and_setup_guide.md (new)"
+  ],
+  "next_step": "APK install (phone), PAT rerun + real-repo feed, hardening, rehearsal",
+  "user_blockers": ["firewall rule (admin, one-time)", "phone USB debugging", "PAT rerun", "rotate NVIDIA key post-demo"]
+}
