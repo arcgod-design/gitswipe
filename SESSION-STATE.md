@@ -1,33 +1,29 @@
-# SESSION-STATE.md — as of 2026-10-04 (session 18: D1 of the 4-day demo sprint)
+# SESSION-STATE.md — as of 2026-10-07 (session 19: D2 self-learning landed)
 
-## Current sprint
+## Calendar reality (brutal)
 
-**4 days to a fully-working prototype** (show date ~2026-10-08; the ma'am needs a working prototype). D1 ✅ DONE. The WEEK ladder still holds — D-plan maps onto weeks 09-12.
+System clock says **2026-10-07**. The D-plan (written 2026-10-04) had D2=Oct 5, D3=Oct 6, D4=Oct 7. The research sessions + SDK detours consumed the calendar. If the show is Oct 8, TODAY must carry: Capacitor wrap + debug APK + Tailscale transport + essential hardening. Rehearsal compresses into the hours before the show. User must confirm the demo date.
 
 ## Stack state
 
-- Branch: dev. **180/180 tests**, typecheck clean.
-- BYOK is DONE ON THE APP: provider select + key store/remove (OS secret store, DPAPI) + live provider test — nvidia-nim + `nvidia/nemotron-3-super-120b-a12b` verified live through the app ([OK], 1278ms).
-- Workspace root shipped: user folder (e.g. ssoc) or auto-created default; absolute-path validated; shown in Settings + serve banner.
-- NVIDIA key is in the OS store (`provider:nvidia-nim`). ROTATE IT AFTER THE DEMO — it was pasted in chat once. 40 req/min limit noted; rate-budget handling exists in the provider stack.
+- Branch: dev. **189/189 tests**, typecheck clean.
+- **Self-learning v1.5 SHIPPED**: outcome feedback (COMPLETED/FAILED sessions update the skill graph - finishing beats liking), topic tags (labels + title tokens, domain_match reasons), recency decay (30-day half-life). Live-verified: session COMPLETED -> "skill graph updated" in the serve console.
+- BYOK on the app + workspace root + nvidia-nim + nemotron: live-verified (D1).
+- Android SDK: fully provisioned (cmdline-tools hand-registered with package.xml after the IDE's HTTP downloader kept corrupting zips).
 
 ## Verified this session
 
-- `npm run typecheck` → clean · `npm test` → 180/180 (9 new settings tests)
-- Live: serve → pair → GET /api/settings → save provider → POST test → **nemotron replied [OK]** → workroot set → folder created on disk
-- Research: stablyai/orca (competitor + reference) + CopilotKit OpenBot/OpenDots/OpenMuse + Anil-matcha/open-dots — all verdicted in gitresearch.md; 5 orca SUGGESTIONS approved by user; 3 sprint skills installed (capacitor-best-practices, argent-android-emulator-setup, playwright-best-practices)
+- npm run typecheck clean; npm test 189/189 (10 new v1.5 tests)
+- Live: pair -> session -> approve -> COMPLETED -> outcome hook fired -> feed healthy
+- The WEEK-03 exit test replayed on outcomes: a completed session measurably changes the next ranking
 
-## Known pain points
+## Next concrete steps (today - the Android half of D2)
 
-- Reasoning models burn hidden tokens before visible content: maxTokens 20 and 100 both returned EMPTY replies from nemotron; 300 works. Set test pings to 300+.
-- Daemon default dataDir is `./data` (not `.data`) — the JARVIS_DATA_DIR footgun from errors.md struck again in a smoke script.
-- Global search-replace hit PairScreen's intentional uppercase `.pair-input` — scope replaces to the target component.
-
-## Next concrete steps (D2 — 2026-10-05)
-
-1. **Self-learning v1.5** (the demo differentiator, scoped in NEXT-TASKS): outcome feedback (COMPLETED sessions boost the card's language/topic weights — closes Execute→Discover), topic tags beyond languages, recency decay. Prove with the WEEK-03 exit-test pattern: outcome measurably changes the next ranking.
-2. Capacitor: init, wrap apps/web, secure storage for the device token, LAN pairing to the daemon (skills installed; Android Studio confirmed installed).
+1. Capacitor: init in apps/mobile, wrap the built web UI, secure storage for the device token, point at the tailnet URL. Skills ready: capacitor-best-practices, argent-android-emulator-setup.
+2. Debug APK via gradle (build-tools 34/35 present; API 34 target).
+3. Tailscale: daemon origin-allowlist + bind config extension; phone + laptop on the tailnet.
+4. PAT + demo feed if the token arrives.
 
 ## Docs health
 
-All surfaces synced this session; state files updated; daily log 2026-10-04-18.md.
+All surfaces synced; daily 2026-10-07-19.md; state sessions/2026-10-07-19.json.

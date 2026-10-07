@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-07 (session 19)",
+  "in_flight": "4-day demo sprint - D2 second half (Android)",
+  "d2_self_learning": "done (outcome feedback + topic tags + recency decay; 189/189; live-verified)",
+  "calendar_warning": "D-plan dated D2=Oct 5; actual Oct 7 - demo date must be reconfirmed with user",
+  "verified": [
+    "npm run typecheck -> clean",
+    "npm test -> 189/189",
+    "live: session -> COMPLETED -> outcome hook fired -> graph updated -> feed healthy"
+  ],
+  "decisions_locked": [
+    "domain_match reused from the protocol enum for topic reasons (no protocol change)",
+    "per-session subscribe (GatewaySession) is the outcome hook point - gateway-level subscribe does not exist"
+  ],
+  "next_step": "Capacitor wrap + debug APK + Tailscale transport extension today; hardening essentials; user confirms demo date",
+  "user_blockers": ["demo date confirm", "phone USB debugging", "U5b PAT", "Tailscale on both devices", "rotate NVIDIA key after demo"]
+}
