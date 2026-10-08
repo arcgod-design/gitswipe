@@ -6,6 +6,7 @@ export interface WorkstationSettings {
   providerId?: string;
   model?: string;
   allowedOrigins?: string[];
+  feedRepos?: string[];
 }
 
 export function defaultWorkRoot(dataDir: string): string {
@@ -21,6 +22,9 @@ export function loadSettings(dataDir: string): WorkstationSettings {
       model: typeof raw.model === "string" ? raw.model : undefined,
       allowedOrigins: Array.isArray(raw.allowedOrigins)
         ? raw.allowedOrigins.filter((o) => typeof o === "string" && o.length > 0)
+        : undefined,
+      feedRepos: Array.isArray(raw.feedRepos)
+        ? raw.feedRepos.filter((o) => typeof o === "string" && /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(o))
         : undefined,
     };
   } catch {

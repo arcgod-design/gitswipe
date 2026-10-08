@@ -186,7 +186,7 @@ async function serveCommand(): Promise<void> {
   const secretStore = createSecretStore({ dataDir: join(config.dataDir, "secrets") });
   const workRoot = resolveWorkRoot(config.dataDir);
 
-  const feedEngine = await buildProductionFeed(config.dataDir);
+  const feedEngine = await buildProductionFeed(config.dataDir, secretStore);
   const sessionManager = await buildProductionSessions(config.dataDir, journal, identity, (key, result) => {
     feedEngine?.outcome(key, result);
     process.stdout.write(`  outcome: session ${result} on ${key} - skill graph updated\n`);
@@ -323,7 +323,7 @@ switch (arg) {
     break;
 }
 
-async function buildProductionFeed(dataDir: string): Promise<import("./workstation/server.js").ProductionFeedEngine | undefined> {
+async function buildProductionFeed(dataDir: string, secretStore?: import("@jarvis/providers").SecretStore): Promise<import("./workstation/server.js").ProductionFeedEngine | undefined> {
   try {
     const discovery = await import("@jarvis/discovery");
     const buildCandidate = discovery.buildCandidate;
@@ -334,11 +334,14 @@ async function buildProductionFeed(dataDir: string): Promise<import("./workstati
     const seedFromLanguages = discovery.seedFromLanguages;
     const JsonlSwipeStore = discovery.JsonlSwipeStore;
     const { join } = await import("node:path");
+    const { loadSettings } = await import("./workstation/settings.js");
 
     const swipeStore = new JsonlSwipeStore(join(dataDir, "swipes.jsonl"));
-    const candidates = buildFixtureCandidates(buildCandidate);
-    let graph = seedFromLanguages(emptyGraph(), ["TypeScript", "TypeScript", "Python"]);
+    const loaded = await loadRealCandidates(buildCandidate, loadSettings(dataDir).feedRepos, secretStore);
+    const candidates = loaded.candidates;
     const candidateByKey = new Map(candidates.map((c) => [c.key, c]));
+    process.stdout.write(`  feed: ${loaded.source} (${candidates.length} candidates)\n`);
+    let graph = seedFromLanguages(emptyGraph(), ["TypeScript", "TypeScript", "Python"]);
 
     return {
       feed() {
@@ -373,6 +376,48 @@ async function buildProductionFeed(dataDir: string): Promise<import("./workstati
     process.stderr.write(`feed engine unavailable: ${err instanceof Error ? err.message : String(err)}\n`);
     return undefined;
   }
+}
+
+async function loadRealCandidates(
+  buildCandidate: (item: import("@jarvis/github").NormalizedIssue, repo: import("@jarvis/github").NormalizedRepository | null) => import("@jarvis/discovery").Candidate,
+  feedRepos: string[] | undefined,
+  secretStore: import("@jarvis/providers").SecretStore | undefined,
+): Promise<{ candidates: import("@jarvis/discovery").Candidate[]; source: string }> {
+  if (secretStore !== undefined) {
+    try {
+      const gh = await import("@jarvis/github");
+      const auth = new gh.TokenGitHubAuth({ store: secretStore });
+      const client = new gh.GitHubClient({ auth });
+      const repos: import("@jarvis/github").NormalizedRepository[] = [];
+      if (feedRepos !== undefined && feedRepos.length > 0) {
+        for (const full of feedRepos.slice(0, 4)) {
+          repos.push(await gh.fetchRepository(client, full));
+        }
+      } else {
+        const res = await client.get<unknown[]>("/user/repos?sort=pushed&per_page=6&affiliation=owner");
+        if (res.status !== 200 || !Array.isArray(res.data) || res.data.length === 0) throw new Error(`user repos: HTTP ${res.status}`);
+        for (const raw of res.data) {
+          const norm = gh.normalizeRepository(raw as never);
+          if (!norm.archived && norm.open_issues_count > 0) repos.push(norm);
+          if (repos.length >= 3) break;
+        }
+      }
+      const candidates: import("@jarvis/discovery").Candidate[] = [];
+      for (const repo of repos) {
+        for await (const item of gh.ingestIssues(client, repo.full_name, { state: "open", maxPages: 1 })) {
+          if (item.kind !== "issue") continue;
+          candidates.push(buildCandidate(item, repo));
+          if (candidates.length >= 12) break;
+        }
+        if (candidates.length >= 12) break;
+      }
+      if (candidates.length > 0) return { candidates, source: "github-live" };
+      process.stderr.write(`  live github feed: ${repos.length} repos scanned, 0 open issues - set settings.json feedRepos or falling back to fixtures\n`);
+    } catch (err) {
+      process.stderr.write(`  live github feed unavailable (${err instanceof Error ? err.message : String(err)}) - falling back to fixtures\n`);
+    }
+  }
+  return { candidates: buildFixtureCandidates(buildCandidate), source: "fixture" };
 }
 
 function buildFixtureCandidates(buildCandidate: (item: import("@jarvis/github").NormalizedIssue, repo: import("@jarvis/github").NormalizedRepository | null) => import("@jarvis/discovery").Candidate): import("@jarvis/discovery").Candidate[] {

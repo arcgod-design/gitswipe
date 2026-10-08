@@ -200,12 +200,7 @@ function PairScreen({ onPaired }: { onPaired: (t: string) => void }): React.Reac
   };
 
   return (
-    <div className="app">
-      <header className="header">
-        <span className="wordmark">
-          Git<span className="swipe">Swipe</span>
-        </span>
-      </header>
+    <>
       <div className="card" style={{ padding: 32, marginTop: 24 }}>
         <h2 className="screen-title">Pair your device</h2>
         <p style={{ color: "var(--text-muted)", marginTop: 8 }}>
@@ -225,22 +220,23 @@ function PairScreen({ onPaired }: { onPaired: (t: string) => void }): React.Reac
             aria-label="workstation url"
           />
         </div>
-        <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
+        <div style={{ display: "flex", gap: 12, marginTop: 24, flexWrap: "wrap" }}>
           <input
             className="pair-input"
+            style={{ flex: 1, minWidth: 0 }}
             placeholder="XXXX-XXXX"
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             onKeyDown={(e) => void (e.key === "Enter" && void pair())}
             aria-label="pairing code"
           />
-          <button type="button" className="btn btn-primary" onClick={() => void pair()} disabled={busy || code.length < 9}>
+          <button type="button" className="btn btn-primary" style={{ whiteSpace: "nowrap" }} onClick={() => void pair()} disabled={busy || code.length < 9}>
             {busy ? "Pairing..." : "Pair"}
           </button>
         </div>
         {error !== null ? <div className="error-state" style={{ marginTop: 16 }}>{error}</div> : null}
       </div>
-    </div>
+    </>
   );
 }
 
