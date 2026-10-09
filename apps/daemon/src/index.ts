@@ -190,7 +190,7 @@ async function serveCommand(): Promise<void> {
   const sessionManager = await buildProductionSessions(config.dataDir, journal, identity, (key, result) => {
     feedEngine?.outcome(key, result);
     process.stdout.write(`  outcome: session ${result} on ${key} - skill graph updated\n`);
-  });
+  }, feedEngine?.candidates() ?? []);
 
   const handle = await startWorkstationServer({
     config,
@@ -371,6 +371,9 @@ async function buildProductionFeed(dataDir: string, secretStore?: import("@jarvi
         swipeStore.replaceAll([]);
         graph = seedFromLanguages(emptyGraph(), ["TypeScript", "TypeScript", "Python"]);
       },
+      candidates() {
+        return candidates;
+      },
     };
   } catch (err) {
     process.stderr.write(`feed engine unavailable: ${err instanceof Error ? err.message : String(err)}\n`);
@@ -435,16 +438,17 @@ function buildFixtureCandidates(buildCandidate: (item: import("@jarvis/github").
   return issues.map((item) => buildCandidate(item, repos.get(item.repo_full_name) ?? null));
 }
 
-async function buildProductionSessions(dataDir: string, journal: import("./workstation/journal.js").WorkstationJournal, identity: import("./workstation/identity.js").DeviceIdentity, onOutcome?: (candidateKey: string, result: "completed" | "failed") => void): Promise<import("./workstation/server.js").ProductionSessionManager | undefined> {
+async function buildProductionSessions(dataDir: string, journal: import("./workstation/journal.js").WorkstationJournal, identity: import("./workstation/identity.js").DeviceIdentity, onOutcome?: (candidateKey: string, result: "completed" | "failed") => void, candidateList: import("@jarvis/discovery").Candidate[] = []): Promise<import("./workstation/server.js").ProductionSessionManager | undefined> {
   try {
     const agents = await import("@jarvis/agents");
-    const discovery = await import("@jarvis/discovery");
     const { join } = await import("node:path");
+    const { resolveWorkRoot } = await import("./workstation/settings.js");
 
     const adapter = new agents.MockAgentAdapter(60);
     const checkpoints = new agents.CheckpointStore(join(dataDir, "checkpoints"));
-    const candidates = buildFixtureCandidates(discovery.buildCandidate);
+    const candidates = candidateList.length > 0 ? candidateList : buildFixtureCandidates((await import("@jarvis/discovery")).buildCandidate);
     const candidateByKey = new Map(candidates.map((c) => [c.key, c]));
+    const workRoot = resolveWorkRoot(dataDir).path;
 
     const gateway = new agents.AgentGateway({ adapter, journal, checkpoints });
     type SessionLike = { currentState(): string; pendingApproval(): unknown; decide(approve: boolean): Promise<{ ok: boolean; reason?: string }> };
@@ -473,7 +477,7 @@ async function buildProductionSessions(dataDir: string, journal: import("./works
         const session = await gateway.createSession({
           repository: candidate.repoFullName,
           branch: `feat/issue-${candidate.number}-${slug}`,
-          worktreePath: join(dataDir, "worktrees", candidate.repoFullName.split("/")[1] ?? "repo", `issue-${candidate.number}`),
+          worktreePath: join(workRoot, "worktrees", candidate.repoFullName.split("/")[1] ?? "repo", `issue-${candidate.number}`),
           prompt: candidate.body,
           validationCommands: ["npm test"],
           userId: "usr_local",

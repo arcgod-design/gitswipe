@@ -245,8 +245,11 @@ function FeedScreen({ onWork }: { onWork: (key: string) => void }): React.ReactN
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [leaving, setLeaving] = useState<FeedCard | null>(null);
-  const top = feed?.feed[0];
-  const next = feed?.feed[1];
+  const [leavingDir, setLeavingDir] = useState<"left" | "right">("left");
+  const effectiveFeed = feed !== null ? (feed.feed.length > 0 ? feed.feed : feed.whyNot) : [];
+  const showingWhyNot = feed !== null && feed.feed.length === 0 && feed.whyNot.length > 0;
+  const top = effectiveFeed[0];
+  const next = effectiveFeed[1];
 
   const loadFeed = useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -268,6 +271,7 @@ function FeedScreen({ onWork }: { onWork: (key: string) => void }): React.ReactN
   const swipe = useCallback(
     async (direction: "left" | "right"): Promise<void> => {
       if (top === undefined || leaving !== null) return;
+      setLeavingDir(direction);
       setLeaving(top);
       try {
         const page = await call<FeedPage>("/api/swipe", {
@@ -284,6 +288,53 @@ function FeedScreen({ onWork }: { onWork: (key: string) => void }): React.ReactN
     [top, leaving, loadFeed],
   );
 
+  const cardRef = useRef<HTMLElement | null>(null);
+  const drag = useRef<{ startX: number; dx: number } | null>(null);
+  const stampPass = useRef<HTMLSpanElement | null>(null);
+  const stampWork = useRef<HTMLSpanElement | null>(null);
+
+  const onCardPointerDown = (e: React.PointerEvent<HTMLElement>): void => {
+    if (leaving !== null || top === undefined) return;
+    drag.current = { startX: e.clientX, dx: 0 };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const onCardPointerMove = (e: React.PointerEvent<HTMLElement>): void => {
+    if (drag.current === null || cardRef.current === null) return;
+    const dx = e.clientX - drag.current.startX;
+    drag.current.dx = dx;
+    cardRef.current.style.transition = "none";
+    cardRef.current.style.transform = `translateX(${dx}px) rotate(${dx * 0.05}deg)`;
+    if (stampPass.current !== null) stampPass.current.style.opacity = String(Math.max(0, Math.min(1, -dx / 90)));
+    if (stampWork.current !== null) stampWork.current.style.opacity = String(Math.max(0, Math.min(1, dx / 90)));
+  };
+
+  const onCardPointerUp = (): void => {
+    if (drag.current === null) return;
+    const { dx } = drag.current;
+    drag.current = null;
+    if (stampPass.current !== null) stampPass.current.style.opacity = "0";
+    if (stampWork.current !== null) stampWork.current.style.opacity = "0";
+    if (dx > 90) {
+      if (cardRef.current !== null) {
+        cardRef.current.style.transition = "transform 300ms ease, opacity 300ms ease";
+        cardRef.current.style.transform = "translateX(120%) rotate(6deg)";
+        cardRef.current.style.opacity = "0";
+      }
+      void swipe("right");
+    } else if (dx < -90) {
+      if (cardRef.current !== null) {
+        cardRef.current.style.transition = "transform 300ms ease, opacity 300ms ease";
+        cardRef.current.style.transform = "translateX(-120%) rotate(-6deg)";
+        cardRef.current.style.opacity = "0";
+      }
+      void swipe("left");
+    } else if (cardRef.current !== null) {
+      cardRef.current.style.transition = "transform 220ms ease";
+      cardRef.current.style.transform = "";
+    }
+  };
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if (e.key === "ArrowLeft") void swipe("left");
@@ -298,8 +349,8 @@ function FeedScreen({ onWork }: { onWork: (key: string) => void }): React.ReactN
   if (top === undefined) {
     return (
       <div className="empty-state">
-        <div className="big">That's every card in the feed.</div>
-        <div>Swipe data resets when the workstation restarts.</div>
+        <div className="big">No cards right now.</div>
+        <div>Sync your GitHub repos on the workstation - or swipe data resets when it restarts.</div>
       </div>
     );
   }
@@ -307,11 +358,24 @@ function FeedScreen({ onWork }: { onWork: (key: string) => void }): React.ReactN
   const renderCard = (card: FeedCard, isTop: boolean, isLeaving: boolean, dir: "left" | "right" | null): React.ReactNode => (
     <article
       key={card.key}
+      ref={isTop ? cardRef : undefined}
       className={`feed-card card ${isTop ? "" : "next"} ${isLeaving ? `leaving ${dir ?? ""}` : ""}`}
       aria-hidden={!isTop}
+      onPointerDown={isTop ? onCardPointerDown : undefined}
+      onPointerMove={isTop ? onCardPointerMove : undefined}
+      onPointerUp={isTop ? onCardPointerUp : undefined}
+      onPointerCancel={isTop ? onCardPointerUp : undefined}
+      style={isTop ? { touchAction: "pan-y" } : undefined}
     >
+      {isTop ? (
+        <>
+          <span className="stamp stamp-pass" ref={stampPass} aria-hidden="true">PASS</span>
+          <span className="stamp stamp-work" ref={stampWork} aria-hidden="true">WORK</span>
+        </>
+      ) : null}
       <div className="chip-row">
         <span className="chip kind">{card.kind.replace("_", " ")}</span>
+        {card.showAnyway ? <span className="chip chip-warn">below your bar - shown anyway</span> : null}
         {card.language !== null ? <span className="chip">{card.language}</span> : null}
         {card.labels.slice(0, 3).map((l) => (
           <span key={l} className="chip">{l}</span>
@@ -348,14 +412,15 @@ function FeedScreen({ onWork }: { onWork: (key: string) => void }): React.ReactN
 
   return (
     <section>
+      {showingWhyNot ? (
+        <p className="hint swipe-hint">nothing cleared your match bar yet - showing the best available anyway</p>
+      ) : null}
       <div className="feed-stack">
-        {leaving !== null ? renderCard(leaving, true, true, "left") : null}
-        {leaving === null && top !== undefined ? renderCard(top, true, false, null) : null}
         {next !== undefined ? renderCard(next, false, false, null) : null}
+        {leaving !== null ? renderCard(leaving, true, true, leavingDir) : null}
+        {leaving === null && top !== undefined ? renderCard(top, true, false, null) : null}
       </div>
-      <p className="hint">
-        <span className="kbd">←</span> pass <span className="kbd">→</span> next card
-      </p>
+      <p className="hint swipe-hint">drag the card left to pass - right to work</p>
     </section>
   );
 }
@@ -767,6 +832,7 @@ function SettingsScreen(): React.ReactNode {
 export default function App() {
   const [screen, setScreen] = useState<Screen>({ name: "pair" });
   const [paired, setPaired] = useState(token.read() !== null);
+  const [workError, setWorkError] = useState<string | null>(null);
 
   useEffect(() => {
     if (paired) setScreen({ name: "feed" });
@@ -783,7 +849,7 @@ export default function App() {
       body: JSON.stringify({ key }),
     })
       .then(({ sessionId }) => setScreen({ name: "session", sessionId }))
-      .catch(() => undefined);
+      .catch((err) => setWorkError(err instanceof Error ? err.message : "could not start the session"));
   };
 
   return (
@@ -807,7 +873,17 @@ export default function App() {
       {!paired || screen.name === "pair" ? (
         <PairScreen onPaired={onPaired} />
       ) : null}
-      {paired && screen.name === "feed" ? <FeedScreen onWork={onWork} /> : null}
+      {paired && screen.name === "feed" ? (
+        <>
+          {workError !== null ? (
+            <div className="error-state" style={{ marginTop: 16 }}>
+              {workError}
+              <button type="button" className="btn btn-quiet" style={{ marginLeft: 12 }} onClick={() => setWorkError(null)}>dismiss</button>
+            </div>
+          ) : null}
+          <FeedScreen onWork={onWork} />
+        </>
+      ) : null}
       {paired && screen.name === "session" ? (
         <SessionScreen sessionId={screen.sessionId} onBack={() => setScreen({ name: "feed" })} />
       ) : null}

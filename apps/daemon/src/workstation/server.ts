@@ -20,7 +20,7 @@ import type { WorkstationJournal } from "./journal.js";
 import type { DurableQueue } from "./queue.js";
 import type { WorkstationHealth } from "./health.js";
 import type { GatewaySession } from "@jarvis/agents";
-import type { FeedCard } from "@jarvis/discovery";
+import type { Candidate, FeedCard } from "@jarvis/discovery";
 
 export interface WorkstationServerHandle {
   server: Server;
@@ -43,6 +43,7 @@ export interface ProductionFeedEngine {
   feed(): { feed: FeedCard[]; whyNot: FeedCard[]; generatedAt: string };
   swipe(key: string, action: string): { feed: FeedCard[]; whyNot: FeedCard[]; generatedAt: string };
   outcome(key: string, result: string): void;
+  candidates(): Candidate[];
   reset(): void;
 }
 
