@@ -4,7 +4,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
-import { isProtocolCompatible, WORKSTATION_PROTOCOL, WORKSTATION_PROTOCOL_VERSION } from "@jarvis/protocol";
+import { isProtocolCompatible, WORKSTATION_PROTOCOL, WORKSTATION_PROTOCOL_VERSION, type TaskContract } from "@jarvis/protocol";
 import { createProvider, maskKey, PROVIDER_PRESETS, resolveApiKey, type SecretStore } from "@jarvis/providers";
 import type { WorkstationConfig } from "./config.js";
 import { describeBind } from "./config.js";
@@ -14,6 +14,7 @@ import {
   validateAndPrepareWorkRoot,
   defaultWorkRoot,
 } from "./settings.js";
+import { aiRefineAnalysis, buildTaskContract, taskPromptMarkdown } from "./task.js";
 import type { DeviceIdentity } from "./identity.js";
 import type { PairingService } from "./pairing.js";
 import type { WorkstationJournal } from "./journal.js";
@@ -176,6 +177,69 @@ export function startWorkstationServer(deps: {
       return;
     }
 
+    if (req.method === "POST" && url.pathname === "/api/task") {
+      const body = (await readJson(req)) as Record<string, unknown>;
+      const parsed = z.object({ key: z.string().min(1) }).safeParse(body);
+      if (!parsed.success || feedEngine === undefined) {
+        respond(400, { error: feedEngine === undefined ? "feed engine unavailable" : "invalid task payload" });
+        return;
+      }
+      const candidate = feedEngine.candidates().find((c) => c.key === parsed.data.key);
+      if (candidate === undefined) {
+        respond(404, { error: "unknown candidate" });
+        return;
+      }
+      const settings = loadSettings(config.dataDir);
+      const analysis = await aiRefineAnalysis(secretStore, settings.providerId, settings.model, candidate);
+      const contract = buildTaskContract(candidate, analysis);
+      respond(200, {
+        markdown: taskPromptMarkdown(contract),
+        backend: settings.agentBackend ?? "mock",
+        modelChain: settings.agentModelChain ?? null,
+        analysisUsed: analysis !== null,
+        branch: contract.git_workflow.branch,
+      });
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/settings/agent") {
+      const body = (await readJson(req)) as Record<string, unknown>;
+      const parsed = z
+        .object({
+          backend: z.enum(["mock", "opencode"]),
+          modelChain: z.array(z.string().min(1)).max(5).optional(),
+        })
+        .safeParse(body);
+      if (!parsed.success) {
+        respond(400, { error: "invalid agent payload" });
+        return;
+      }
+      saveSettings(config.dataDir, {
+        agentBackend: parsed.data.backend,
+        ...(parsed.data.modelChain !== undefined ? { agentModelChain: parsed.data.modelChain } : {}),
+      });
+      respond(200, {
+        backend: parsed.data.backend,
+        modelChain: parsed.data.modelChain ?? null,
+        note: parsed.data.backend === "opencode" ? "takes effect on the next serve start" : "simulated agent",
+      });
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/settings/feedrepos") {
+      const body = (await readJson(req)) as Record<string, unknown>;
+      const parsed = z
+        .object({ repos: z.array(z.string().regex(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/)).max(10) })
+        .safeParse(body);
+      if (!parsed.success) {
+        respond(400, { error: "invalid repos payload" });
+        return;
+      }
+      saveSettings(config.dataDir, { feedRepos: parsed.data.repos });
+      respond(200, { repos: parsed.data.repos, note: "takes effect on the next serve start" });
+      return;
+    }
+
     if (url.pathname.startsWith("/api/settings")) {
       const PROVIDER_IDS = [...Object.keys(PROVIDER_PRESETS), "anthropic", "generic"];
       const presets = [
@@ -197,6 +261,9 @@ export function startWorkstationServer(deps: {
           keyConfigured: key.key !== undefined,
           keyMasked: key.key !== undefined ? maskKey(key.key) : null,
           presets,
+          agentBackend: settings.agentBackend ?? "mock",
+          agentModelChain: settings.agentModelChain ?? null,
+          feedRepos: settings.feedRepos ?? null,
         });
         return;
       }

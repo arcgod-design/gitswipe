@@ -1,11 +1,35 @@
+import { spawn, type ChildProcess } from "node:child_process";
+import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import { promisify } from "node:util";
 import type { AdapterEvent, AgentAdapter, TaskContext } from "./adapter.js";
 import { probeBinary } from "./adapter.js";
 
+const execFileAsync = promisify(execFile);
+
+export function resolveOpenCodeBinary(): string {
+  if (process.platform === "win32") {
+    const globalNpm = join(process.env.APPDATA ?? "", "npm", "node_modules", "opencode-ai", "bin", "opencode.exe");
+    if (existsSync(globalNpm)) return globalNpm;
+  }
+  return "opencode";
+}
+
 export interface OpenCodeAdapterOptions {
   serverUrl?: string;
+  modelChain?: readonly string[];
   probeBinary?: (binary: string, args?: readonly string[]) => Promise<{ ok: boolean; detail: string }>;
   fetch?: typeof globalThis.fetch;
+  spawnFn?: typeof spawn;
+  maxRunMs?: number;
 }
+
+export const DEFAULT_OPENCODE_MODEL_CHAIN = [
+  "nvidia/nvidia/nemotron-3-super-120b-a12b",
+  "nvidia/nvidia/deepseek-ai/deepseek-v4.1-flash",
+  "nvidia/nvidia/nemotron-3.5-lightning-30b-a3b",
+] as const;
 
 export const OPENCODE_TAKEOVER_NOTE =
   "Takeover: CLI-initiated sessions appear in the OpenCode Desktop app via the shared session database; from a terminal run 'opencode session list' then 'opencode session resume <agent_session_id>' (the one-way /sessions quirk does not lose data). Verify flags against current docs at live-integration time (contract s18)." as const;
@@ -23,16 +47,31 @@ export function opencodeRunArgs(context: TaskContext, model: string): string[] {
   ];
 }
 
+interface RunState {
+  context: TaskContext;
+  onEvent: (event: AdapterEvent) => void;
+  child: ChildProcess | null;
+  settled: boolean;
+  approvalAction: string | null;
+}
+
 export class OpenCodeAdapter implements AgentAdapter {
   readonly id = "opencode";
-  readonly displayName = "OpenCode (headless)";
+  readonly displayName = "OpenCode (live harness)";
 
-  constructor(private readonly opts: OpenCodeAdapterOptions = {}) {}
+  private readonly chain: readonly string[];
+  private readonly doSpawn: typeof spawn;
+  private state: RunState | null = null;
+
+  constructor(private readonly opts: OpenCodeAdapterOptions = {}) {
+    this.chain = opts.modelChain ?? DEFAULT_OPENCODE_MODEL_CHAIN;
+    this.doSpawn = opts.spawnFn ?? spawn;
+  }
 
   capabilities(): import("@jarvis/protocol").AgentCapabilities {
     return {
-      followUp: true,
-      pauseResume: true,
+      followUp: false,
+      pauseResume: false,
       interrupt: true,
       structuredEvents: true,
       worktreeIsolation: true,
@@ -41,9 +80,9 @@ export class OpenCodeAdapter implements AgentAdapter {
 
   async available(): Promise<{ ok: boolean; detail: string }> {
     const probe = this.opts.probeBinary ?? probeBinary;
-    const cli = await probe("opencode", ["--version"]);
+    const cli = await probe(resolveOpenCodeBinary(), ["--version"]);
     if (!cli.ok) {
-      return { ok: false, detail: "opencode CLI not found on PATH; install it and retry" };
+      return { ok: false, detail: "opencode CLI not found (global npm install or PATH); install it and retry" };
     }
     return cli;
   }
@@ -63,19 +102,162 @@ export class OpenCodeAdapter implements AgentAdapter {
     return { binary: "opencode", args: opencodeRunArgs(context, model) };
   }
 
-  start(_context: TaskContext, _onEvent: (event: AdapterEvent) => void): void {
-    throw new Error("OpenCode runtime paths are PROTO until live-verified against a real opencode server (contract s203: test via mocks first; do not claim working until a live session runs)");
+  start(context: TaskContext, onEvent: (event: AdapterEvent) => void): void {
+    if (this.state !== null && !this.state.settled) {
+      onEvent({ kind: "failed", reason: "an opencode run is already active on this adapter" });
+      return;
+    }
+    this.state = { context, onEvent, child: null, settled: false, approvalAction: null };
+    void this.runWithFallback(context, onEvent);
   }
 
   followUp(_message: string): void {
-    throw new Error("PROTO: not wired to a live OpenCode session yet");
+    this.state?.onEvent({ kind: "message", text: "follow-ups land in the OpenCode Desktop app (shared session database) - resume the session there (ADR 0008 takeover note)" });
   }
 
-  decideApproval(_approve: boolean): void {
-    throw new Error("PROTO: not wired to a live OpenCode session yet");
+  decideApproval(approve: boolean): void {
+    const state = this.state;
+    if (state === null || state.settled) return;
+    if (state.approvalAction === null) return;
+    void this.executeApproval(state, approve);
   }
 
   stop(): void {
-    throw new Error("PROTO: not wired to a live OpenCode session yet");
+    if (this.state?.child !== null && this.state?.child?.kill !== undefined) {
+      this.state.child.kill();
+    }
+  }
+
+  private async runWithFallback(context: TaskContext, onEvent: (event: AdapterEvent) => void): Promise<void> {
+    for (let i = 0; i < this.chain.length; i += 1) {
+      const model = this.chain[i]!;
+      if (i > 0) onEvent({ kind: "message", text: `switching to fallback model: ${model}` });
+      const outcome = await this.runOnce(context, onEvent, model);
+      if (outcome === "ok" || outcome === "approved-flow") return;
+      if (outcome === "terminal-failure") return;
+      onEvent({ kind: "message", text: `model ${model} failed before producing work - trying the next in the chain` });
+    }
+    if (this.state !== null && !this.state.settled) {
+      this.state.settled = true;
+      onEvent({ kind: "failed", reason: `all models in the chain failed (${this.chain.join(", ")})` });
+    }
+  }
+
+  private runOnce(context: TaskContext, onEvent: (event: AdapterEvent) => void, model: string): Promise<"ok" | "approved-flow" | "retry" | "terminal-failure"> {
+    return new Promise((resolve) => {
+      const { binary, args } = this.runCommandFor(context, model);
+      const child = this.doSpawn(resolveOpenCodeBinary(), args, { cwd: context.worktreePath });
+      if (this.state !== null) this.state.child = child;
+      let producedOutput = false;
+      let stderrTail = "";
+      const started = Date.now();
+
+      const timer = setTimeout(() => {
+        if (this.state !== null && !this.state.settled) {
+          this.state.settled = true;
+          child.kill();
+          onEvent({ kind: "failed", reason: `opencode run exceeded ${this.opts.maxRunMs ?? 600_000}ms` });
+        }
+        resolve("terminal-failure");
+      }, this.opts.maxRunMs ?? 600_000);
+
+      child.stdout?.on("data", (chunk: Buffer) => {
+        const text = chunk.toString("utf-8");
+        for (const raw of text.split(/\r?\n/)) {
+          const line = raw.trim();
+          if (line.length === 0) continue;
+          producedOutput = true;
+          onEvent({ kind: "message", text: line.slice(0, 300) });
+        }
+      });
+      child.stderr?.on("data", (chunk: Buffer) => {
+        stderrTail = `${stderrTail}${chunk.toString("utf-8")}`.slice(-400);
+      });
+      child.on("error", (err) => {
+        clearTimeout(timer);
+        if (this.state !== null && this.state.settled) return resolve("terminal-failure");
+        onEvent({ kind: "message", text: `opencode failed to start: ${err.message}` });
+        resolve(producedOutput ? "terminal-failure" : "retry");
+      });
+      child.on("close", (code) => {
+        clearTimeout(timer);
+        if (this.state !== null && this.state.settled) return resolve("terminal-failure");
+        if (code !== 0 && !producedOutput) {
+          onEvent({ kind: "message", text: `opencode exited ${code} before any output${stderrTail.length > 0 ? `: ${stderrTail.trim().slice(0, 200)}` : ""}` });
+          return resolve("retry");
+        }
+        void this.finishRun(context, onEvent, code === 0);
+        resolve("ok");
+      });
+      void started;
+    });
+  }
+
+  private async finishRun(context: TaskContext, onEvent: (event: AdapterEvent) => void, cleanExit: boolean): Promise<void> {
+    try {
+      const status = await execFileAsync("git", ["-C", context.worktreePath, "status", "--porcelain"], { timeout: 15_000 });
+      for (const line of status.stdout.split(/\r?\n/)) {
+        const path = line.slice(3).trim();
+        if (path.length === 0) continue;
+        onEvent({ kind: "file-changed", path, change: line.startsWith("??") ? "created" : "modified" });
+      }
+      const shortstat = await execFileAsync("git", ["-C", context.worktreePath, "diff", "--shortstat"], { timeout: 15_000 }).catch(() => undefined);
+      if (shortstat !== undefined && shortstat.stdout.trim().length > 0) {
+        const files = /(\d+) files? changed/.exec(shortstat.stdout);
+        const adds = /(\d+) insertions?/.exec(shortstat.stdout);
+        const dels = /(\d+) deletions?/.exec(shortstat.stdout);
+        onEvent({ kind: "patch", files: files ? Number(files[1]) : 0, additions: adds ? Number(adds[1]) : 0, deletions: dels ? Number(dels[1]) : 0 });
+      }
+    } catch {
+      onEvent({ kind: "message", text: "could not inspect the worktree after the run" });
+    }
+
+    if (!cleanExit) {
+      if (this.state !== null) this.state.settled = true;
+      onEvent({ kind: "failed", reason: "opencode exited with errors" });
+      return;
+    }
+
+    for (const command of context.validationCommands) {
+      onEvent({ kind: "test-started", command });
+      try {
+        const res = await promisify(execFile)(command, [], { cwd: context.worktreePath, shell: true, timeout: 300_000 });
+        onEvent({ kind: "test-result", command, passed: 1, failed: 0, exitCode: 0 });
+        void res;
+      } catch (err) {
+        const e = err as { code?: number | string };
+        const exitCode = typeof e.code === "number" ? e.code : 1;
+        onEvent({ kind: "test-result", command, passed: 0, failed: 1, exitCode });
+      }
+    }
+
+    const branch = context.branch;
+    const pushCommand = `git push origin ${branch}`;
+    if (this.state !== null) this.state.approvalAction = pushCommand;
+    onEvent({ kind: "review-ready", prDraft: false });
+    onEvent({ kind: "approval-request", action: pushCommand, payload: { branch, worktreePath: context.worktreePath } });
+  }
+
+  private async executeApproval(state: RunState, approve: boolean): Promise<void> {
+    if (!approve) {
+      state.settled = true;
+      state.onEvent({ kind: "command", command: `${state.approvalAction} (denied)`, exitCode: null });
+      state.onEvent({ kind: "completed", summary: `push denied by the user - branch ${state.context.branch} stays local in ${state.context.worktreePath}` });
+      return;
+    }
+    const command = state.approvalAction ?? `git push origin ${state.context.branch}`;
+    try {
+      await execFileAsync("git", ["-C", state.context.worktreePath, "push", "origin", state.context.branch], { timeout: 120_000 });
+      state.onEvent({ kind: "command", command, exitCode: 0 });
+      state.settled = true;
+      state.onEvent({ kind: "completed", summary: `branch ${state.context.branch} pushed to origin (fork) - open the PR from your fork; commits carry (closes #N) keywords per the ssoc pattern` });
+    } catch (err) {
+      state.onEvent({ kind: "command", command, exitCode: 1 });
+      state.settled = true;
+      state.onEvent({
+        kind: "completed",
+        summary: `push failed: ${err instanceof Error ? err.message.slice(0, 200) : "unknown"} - likely no fork remote (origin) for this repo. Branch ${state.context.branch} with the real work is preserved locally.`,
+      });
+    }
   }
 }

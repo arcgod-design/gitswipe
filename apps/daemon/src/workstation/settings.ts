@@ -7,6 +7,8 @@ export interface WorkstationSettings {
   model?: string;
   allowedOrigins?: string[];
   feedRepos?: string[];
+  agentBackend?: "mock" | "opencode";
+  agentModelChain?: string[];
 }
 
 export function defaultWorkRoot(dataDir: string): string {
@@ -25,6 +27,10 @@ export function loadSettings(dataDir: string): WorkstationSettings {
         : undefined,
       feedRepos: Array.isArray(raw.feedRepos)
         ? raw.feedRepos.filter((o) => typeof o === "string" && /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(o))
+        : undefined,
+      agentBackend: raw.agentBackend === "opencode" ? "opencode" : raw.agentBackend === "mock" ? "mock" : undefined,
+      agentModelChain: Array.isArray(raw.agentModelChain)
+        ? raw.agentModelChain.filter((m) => typeof m === "string" && m.length > 0)
         : undefined,
     };
   } catch {

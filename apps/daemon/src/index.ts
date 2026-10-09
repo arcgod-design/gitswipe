@@ -190,7 +190,7 @@ async function serveCommand(): Promise<void> {
   const sessionManager = await buildProductionSessions(config.dataDir, journal, identity, (key, result) => {
     feedEngine?.outcome(key, result);
     process.stdout.write(`  outcome: session ${result} on ${key} - skill graph updated\n`);
-  }, feedEngine?.candidates() ?? []);
+  }, feedEngine?.candidates() ?? [], secretStore);
 
   const handle = await startWorkstationServer({
     config,
@@ -438,17 +438,32 @@ function buildFixtureCandidates(buildCandidate: (item: import("@jarvis/github").
   return issues.map((item) => buildCandidate(item, repos.get(item.repo_full_name) ?? null));
 }
 
-async function buildProductionSessions(dataDir: string, journal: import("./workstation/journal.js").WorkstationJournal, identity: import("./workstation/identity.js").DeviceIdentity, onOutcome?: (candidateKey: string, result: "completed" | "failed") => void, candidateList: import("@jarvis/discovery").Candidate[] = []): Promise<import("./workstation/server.js").ProductionSessionManager | undefined> {
+async function buildProductionSessions(dataDir: string, journal: import("./workstation/journal.js").WorkstationJournal, identity: import("./workstation/identity.js").DeviceIdentity, onOutcome?: (candidateKey: string, result: "completed" | "failed") => void, candidateList: import("@jarvis/discovery").Candidate[] = [], secretStore?: import("@jarvis/providers").SecretStore): Promise<import("./workstation/server.js").ProductionSessionManager | undefined> {
   try {
     const agents = await import("@jarvis/agents");
     const { join } = await import("node:path");
-    const { resolveWorkRoot } = await import("./workstation/settings.js");
+    const { loadSettings, resolveWorkRoot } = await import("./workstation/settings.js");
+    const task = await import("./workstation/task.js");
 
-    const adapter = new agents.MockAgentAdapter(60);
+    const settings = loadSettings(dataDir);
     const checkpoints = new agents.CheckpointStore(join(dataDir, "checkpoints"));
     const candidates = candidateList.length > 0 ? candidateList : buildFixtureCandidates((await import("@jarvis/discovery")).buildCandidate);
     const candidateByKey = new Map(candidates.map((c) => [c.key, c]));
     const workRoot = resolveWorkRoot(dataDir).path;
+
+    let adapter: import("@jarvis/agents").AgentAdapter = new agents.MockAgentAdapter(60);
+    let backendLabel = "mock (simulated timeline - set agentBackend=opencode for real dispatch)";
+    if (settings.agentBackend === "opencode") {
+      const oc = new agents.OpenCodeAdapter({ modelChain: settings.agentModelChain });
+      const avail = await oc.available();
+      if (avail.ok) {
+        adapter = oc;
+        backendLabel = `opencode (live) - model chain: ${(settings.agentModelChain ?? agents.DEFAULT_OPENCODE_MODEL_CHAIN).join(" -> ")}`;
+      } else {
+        process.stderr.write(`  opencode unavailable (${avail.detail}) - falling back to the simulated agent\n`);
+      }
+    }
+    process.stdout.write(`  agent backend: ${backendLabel}\n`);
 
     const gateway = new agents.AgentGateway({ adapter, journal, checkpoints });
     type SessionLike = { currentState(): string; pendingApproval(): unknown; decide(approve: boolean): Promise<{ ok: boolean; reason?: string }> };
@@ -473,13 +488,42 @@ async function buildProductionSessions(dataDir: string, journal: import("./works
         if (candidate === undefined) {
           throw new Error(`unknown candidate: ${candidateKey}`);
         }
-        const slug = candidate.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 40);
+        let branch: string;
+        let worktreePath: string;
+        let prompt: string;
+        let validationCommands: string[];
+
+        if (adapter.id === "opencode") {
+          const repoPath = await task.ensureRepoClone(workRoot, candidate.repoFullName);
+          const slug = task.repoSlugFor(candidate.repoFullName);
+          const titleSlug = candidate.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 40);
+          branch = `feat/issue-${candidate.number}-${titleSlug}`;
+          const wtManager = new agents.WorktreeManager(workRoot);
+          worktreePath = join(workRoot, slug, `issue-${candidate.number}`);
+          if (!(await import("node:fs")).existsSync(worktreePath)) {
+            const ref = await wtManager.create({ repoPath, branch, repoSlug: slug, issueNumber: candidate.number });
+            worktreePath = ref.worktreePath;
+          } else {
+            worktreePath = join(workRoot, slug, `issue-${candidate.number}`);
+          }
+          const analysis = await task.aiRefineAnalysis(secretStore, settings.providerId, settings.model, candidate);
+          const contract = task.buildTaskContract(candidate, analysis);
+          prompt = task.taskPromptMarkdown(contract);
+          validationCommands = contract.validation_commands;
+          process.stdout.write(`  real dispatch: ${candidate.repoFullName}#${candidate.number} -> ${worktreePath} (${branch})\n`);
+        } else {
+          branch = `feat/issue-${candidate.number}-${candidate.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 40)}`;
+          worktreePath = join(dataDir, "worktrees", candidate.repoFullName.split("/")[1] ?? "repo", `issue-${candidate.number}`);
+          prompt = candidate.body;
+          validationCommands = ["npm test"];
+        }
+
         const session = await gateway.createSession({
           repository: candidate.repoFullName,
-          branch: `feat/issue-${candidate.number}-${slug}`,
-          worktreePath: join(workRoot, "worktrees", candidate.repoFullName.split("/")[1] ?? "repo", `issue-${candidate.number}`),
-          prompt: candidate.body,
-          validationCommands: ["npm test"],
+          branch,
+          worktreePath,
+          prompt,
+          validationCommands,
           userId: "usr_local",
           workstationId: identity.deviceId,
         });

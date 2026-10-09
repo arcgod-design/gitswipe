@@ -258,12 +258,57 @@ describe("OpenCodeAdapter (contract s203: mock-first; PROTO until live)", () => 
     expect((await healthy.serverHealth()).ok).toBe(true);
   });
 
-  it("runtime paths refuse to pretend (PROTO discipline)", () => {
-    const adapter = new OpenCodeAdapter();
-    expect(() => adapter.start({ repository: "x", branch: "b", worktreePath: "/tmp", prompt: "p", validationCommands: [] }, () => undefined)).toThrow(
-      /PROTO/,
-    );
+  it("live run: streams output as events, then file/test/approval flow; deny keeps the branch local", async () => {
+    const events: string[] = [];
+    const fakeSpawn = (() => {
+      let call = 0;
+      return (): import("node:child_process").ChildProcess => {
+        call += 1;
+        const { EventEmitter } = require("node:events") as typeof import("node:events");
+        const child = new EventEmitter() as unknown as import("node:child_process").ChildProcess;
+        child.stdout = new EventEmitter() as never;
+        child.stderr = new EventEmitter() as never;
+        child.kill = () => true;
+        void call;
+        queueMicrotask(() => {
+          (child.stdout as unknown as { emit: (t: string, d: Buffer) => void }).emit("data", Buffer.from("analysis line 1\nline 2\n"));
+          child.emit("close", 0);
+        });
+        return child;
+      };
+    })();
+    const adapter = new OpenCodeAdapter({ spawnFn: fakeSpawn as never });
+    const seen: Array<{ kind: string; text?: string; action?: string }> = [];
+    const context = {
+      repository: "demo/repo",
+      branch: "feat/issue-1-test",
+      worktreePath: tmp(),
+      prompt: "do it",
+      validationCommands: ["echo ok"],
+    };
+    adapter.start(context, (event) => {
+      seen.push(event as never);
+      if (event.kind === "approval-request") {
+        expect(event.action).toContain("git push origin feat/issue-1-test");
+      }
+    });
+    await new Promise((r) => setTimeout(r, 300));
+    const kinds = seen.map((e) => e.kind);
+    expect(kinds).toContain("message");
+    expect(kinds).toContain("review-ready");
+    expect(kinds).toContain("approval-request");
+    expect(kinds).toContain("test-started");
+    adapter.decideApproval(false);
+    await new Promise((r) => setTimeout(r, 100));
+    const done = seen.find((e) => e.kind === "completed") as { kind: string; summary?: string } | undefined;
+    expect(done?.summary ?? "").toContain("stays local");
   });
+
+  function tmp(): string {
+    const { mkdtempSync } = require("node:fs") as typeof import("node:fs");
+    const { join } = require("node:path") as typeof import("node:path");
+    return mkdtempSync(join(require("node:os").tmpdir(), "jvs-oc-"));
+  }
 
   it("dispatch command follows the researched convention: --dir worktree, --title GitSwipe label, --model", () => {
     const adapter = new OpenCodeAdapter();

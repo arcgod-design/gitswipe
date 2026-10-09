@@ -154,6 +154,7 @@ function openStream(
 type Screen =
   | { name: "pair" }
   | { name: "feed" }
+  | { name: "contract"; key: string }
   | { name: "session"; sessionId: string }
   | { name: "settings" };
 
@@ -447,6 +448,77 @@ function eventDetail(e: SessionEvent): string {
   return "";
 }
 
+interface TaskView {
+  markdown: string;
+  backend: string;
+  modelChain: string[] | null;
+  analysisUsed: boolean;
+  branch: string;
+}
+
+function ContractScreen({ candidateKey, onDispatch, onBack }: { candidateKey: string; onDispatch: () => void; onBack: () => void }): React.ReactNode {
+  const [task, setTask] = useState<TaskView | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [dispatching, setDispatching] = useState(false);
+
+  useEffect(() => {
+    void call<TaskView>("/api/task", { method: "POST", body: JSON.stringify({ key: candidateKey }) })
+      .then(setTask)
+      .catch((err) => setError(err instanceof Error ? err.message : "could not build the task contract"));
+  }, [candidateKey]);
+
+  return (
+    <section>
+      <div className="contract-head">
+        <button type="button" className="btn btn-ghost" onClick={onBack}>
+          <ArrowLeft size={16} /> Back to feed
+        </button>
+        <h2 className="screen-title">Task contract</h2>
+      </div>
+      {error !== null ? <div className="error-state" style={{ marginTop: 16 }}>{error}</div> : null}
+      {task === null && error === null ? (
+        <div className="card" style={{ padding: 24, marginTop: 18 }}>
+          <div className="contract-section">
+            <h3>AI analysis</h3>
+            <p className="mono-value">{`the analysis model is reading the issue and writing the task prompt...`}</p>
+          </div>
+        </div>
+      ) : null}
+      {task !== null ? (
+        <>
+          <div className="chip-row" style={{ marginTop: 14 }}>
+            <span className={`chip ${task.backend === "opencode" ? "chip-live" : "chip-warn"}`}>
+              {task.backend === "opencode" ? "live agent (opencode)" : "simulated agent (demo)"}
+            </span>
+            {task.analysisUsed ? <span className="chip">ai-refined contract</span> : <span className="chip chip-warn">deterministic contract</span>}
+            <span className="chip">{task.branch}</span>
+          </div>
+          {task.modelChain !== null ? (
+            <p className="hint" style={{ marginTop: 10 }}>model chain: {task.modelChain.join(" -> ")}</p>
+          ) : null}
+          <div className="card contract-card" style={{ marginTop: 14 }}>
+            <pre className="contract-markdown">{task.markdown}</pre>
+          </div>
+          <div className="btn-row" style={{ marginTop: 16 }}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={dispatching}
+              onClick={() => {
+                setDispatching(true);
+                onDispatch();
+              }}
+            >
+              <Play size={16} weight="fill" /> {dispatching ? "Dispatching..." : "Dispatch to the coding agent"}
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={onBack}>Not now</button>
+          </div>
+        </>
+      ) : null}
+    </section>
+  );
+}
+
 function SessionScreen({ sessionId, onBack }: { sessionId: string; onBack: () => void }): React.ReactNode {
   const [events, setEvents] = useState<SessionEvent[]>([]);
   const [state, setState] = useState("RUNNING");
@@ -554,6 +626,9 @@ interface SettingsState {
   keyConfigured: boolean;
   keyMasked: string | null;
   presets: ProviderPreset[];
+  agentBackend: string;
+  agentModelChain: string[] | null;
+  feedRepos: string[] | null;
 }
 
 function SettingsScreen(): React.ReactNode {
@@ -573,6 +648,11 @@ function SettingsScreen(): React.ReactNode {
   const [busy, setBusy] = useState<string | null>(null);
   const [providerMsg, setProviderMsg] = useState<string | null>(null);
   const [providerOk, setProviderOk] = useState<boolean | null>(null);
+  const [agentBackend, setAgentBackend] = useState("mock");
+  const [agentChainText, setAgentChainText] = useState("");
+  const [agentMsg, setAgentMsg] = useState<string | null>(null);
+  const [reposText, setReposText] = useState("");
+  const [reposMsg, setReposMsg] = useState<string | null>(null);
 
   const reload = useCallback(() => {
     void call<Record<string, unknown>>("/api/workstation")
@@ -586,6 +666,9 @@ function SettingsScreen(): React.ReactNode {
         if (s.model !== null) setModel(s.model);
         setKeyMasked(s.keyMasked);
         setPresets(s.presets);
+        setAgentBackend(s.agentBackend);
+        setAgentChainText((s.agentModelChain ?? []).join(", "));
+        setReposText((s.feedRepos ?? []).join("\n"));
       })
       .catch((err) => setError(err instanceof Error ? err.message : "failed"));
   }, []);
@@ -794,6 +877,94 @@ function SettingsScreen(): React.ReactNode {
 
       <div className="card" style={{ padding: 24, marginTop: 18 }}>
         <div className="chip-row">
+          <span className="chip kind">agent</span>
+          <span className={`chip ${agentBackend === "opencode" ? "chip-live" : "chip-warn"}`}>
+            {agentBackend === "opencode" ? "opencode (live dispatch)" : "simulated (demo timeline)"}
+          </span>
+        </div>
+        <div className="contract-section">
+          <h3>Coding agent</h3>
+          <div className="form-row">
+            <label htmlFor="agent-backend">Backend</label>
+            <select id="agent-backend" className="form-input" value={agentBackend} onChange={(e) => setAgentBackend(e.target.value)}>
+              <option value="mock">Simulated agent (demo timeline - no real code)</option>
+              <option value="opencode">OpenCode (live - the agent really codes)</option>
+            </select>
+          </div>
+          <div className="form-row">
+            <label htmlFor="agent-chain">Model chain (comma-separated, first is primary; leave empty for the default NVIDIA chain)</label>
+            <input
+              id="agent-chain"
+              className="form-input"
+              type="text"
+              value={agentChainText}
+              onChange={(e) => setAgentChainText(e.target.value)}
+              placeholder="nvidia/nvidia/nemotron-3-super-120b-a12b, nvidia/nvidia/deepseek-ai/deepseek-v4.1-flash"
+              autoComplete="off"
+            />
+          </div>
+          <div className="btn-row">
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={busy !== null}
+              onClick={() => {
+                setBusy("agent");
+                const chain = agentChainText.split(",").map((s) => s.trim()).filter((s) => s.length > 0);
+                void call<{ backend: string; note: string }>("/api/settings/agent", {
+                  method: "POST",
+                  body: JSON.stringify({ backend: agentBackend, ...(chain.length > 0 ? { modelChain: chain } : {}) }),
+                })
+                  .then((r) => setAgentMsg(`saved: ${r.backend} - ${r.note}`))
+                  .catch((err) => setAgentMsg(err instanceof Error ? err.message : "save failed"))
+                  .finally(() => setBusy(null));
+              }}
+            >
+              Save agent
+            </button>
+          </div>
+          {agentMsg !== null ? <div className="notice" style={{ marginTop: 10 }}>{agentMsg}</div> : null}
+        </div>
+        <div className="contract-section">
+          <h3>Feed repositories</h3>
+          <p className="hint">One per line (owner/name). The feed ingests open issues from these repos. Empty = your own repos.</p>
+          <div className="form-row">
+            <label htmlFor="feed-repos">Repositories</label>
+            <textarea
+              id="feed-repos"
+              className="form-input"
+              rows={4}
+              value={reposText}
+              onChange={(e) => setReposText(e.target.value)}
+              placeholder={"expressjs/express\nvercel/next.js"}
+            />
+          </div>
+          <div className="btn-row">
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={busy !== null}
+              onClick={() => {
+                setBusy("repos");
+                const repos = reposText.split(/[\n,]/).map((s) => s.trim()).filter((s) => s.length > 0);
+                void call<{ repos: string[]; note: string }>("/api/settings/feedrepos", {
+                  method: "POST",
+                  body: JSON.stringify({ repos }),
+                })
+                  .then((r) => setReposMsg(`saved ${r.repos.length} repos - ${r.note}`))
+                  .catch((err) => setReposMsg(err instanceof Error ? err.message : "save failed"))
+                  .finally(() => setBusy(null));
+              }}
+            >
+              Save repositories
+            </button>
+          </div>
+          {reposMsg !== null ? <div className="notice" style={{ marginTop: 10 }}>{reposMsg}</div> : null}
+        </div>
+      </div>
+
+      <div className="card" style={{ padding: 24, marginTop: 18 }}>
+        <div className="chip-row">
           <span className="chip kind">workspace</span>
           <span className="chip">{workRootDefault ? "default folder" : "custom folder"}</span>
         </div>
@@ -844,6 +1015,12 @@ export default function App() {
   };
 
   const onWork = (key: string): void => {
+    setScreen({ name: "contract", key });
+  };
+
+  const onDispatch = (): void => {
+    if (screen.name !== "contract") return;
+    const key = screen.key;
     void call<{ sessionId: string; state: string }>("/api/session", {
       method: "POST",
       body: JSON.stringify({ key }),
@@ -883,6 +1060,13 @@ export default function App() {
           ) : null}
           <FeedScreen onWork={onWork} />
         </>
+      ) : null}
+      {paired && screen.name === "contract" ? (
+        <ContractScreen
+          candidateKey={screen.key}
+          onDispatch={onDispatch}
+          onBack={() => setScreen({ name: "feed" })}
+        />
       ) : null}
       {paired && screen.name === "session" ? (
         <SessionScreen sessionId={screen.sessionId} onBack={() => setScreen({ name: "feed" })} />
