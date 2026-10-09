@@ -1,4 +1,7 @@
-# imagemode.md — visual verification tasks for the image-mode session (2026-10-09, after ~18:00)
+# imagemode.md — visual verification tasks (2026-10-09 evening) — PROGRESS UPDATE
+
+> VERIFIED SO FAR: feed = CLEAN (buttons contained, peek visible, fluid card, hint readable). Contract = CLEAN (live-agent chip, ai-refined chip, branch, model chain, nemotron goal, scrollable markdown, dispatch button). REMAINING: settings re-read (v3_s.jpg saved, image model errored - retry), session screen (capture during the final live rehearsal), desktop (user screenshots via Win+Shift+S), sync (verify during rehearsal).
+> NOTE: the detached serve died once mid-verification (tool process-tree kill) - restarted with full state recovery. Keep the restart one-liner ready during the review.
 
 > Context: review day. The app was substantially rebuilt since the last visual check. This file lists EVERY screen to capture and what to verify on each. Run the captures, then read each image and report defects with exact descriptions. Fix batch: one round, per impeccable's bounded-verify discipline.
 
