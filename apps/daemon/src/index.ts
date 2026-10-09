@@ -508,7 +508,9 @@ async function buildProductionSessions(dataDir: string, journal: import("./works
           }
           const analysis = await task.aiRefineAnalysis(secretStore, settings.providerId, settings.model, candidate);
           const contract = task.buildTaskContract(candidate, analysis);
-          prompt = task.taskPromptMarkdown(contract);
+          const { writeFileSync } = await import("node:fs");
+          writeFileSync(join(worktreePath, "TASK_CONTRACT.md"), task.taskPromptMarkdown(contract), "utf-8");
+          prompt = "Read the file TASK_CONTRACT.md in this working directory and complete the task it describes. Work entirely inside this directory.";
           validationCommands = contract.validation_commands;
           process.stdout.write(`  real dispatch: ${candidate.repoFullName}#${candidate.number} -> ${worktreePath} (${branch})\n`);
         } else {

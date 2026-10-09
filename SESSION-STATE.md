@@ -1,19 +1,24 @@
-# SESSION-STATE.md — as of 2026-10-09 (review day, post-fix; session 23 continuing)
+# SESSION-STATE.md — as of 2026-10-09 afternoon (session 24: the REAL dispatch, live)
 
-## The state of the demo (all device-verified on real data)
+## The review flow is now REAL (all live-verified today)
 
-- Full loop live: pair -> real feed (express/next.js/deno via PAT) -> Tinder-drag swipe -> ranking learns (0.43 -> 0.92, named reasons) -> Work on this -> session + live SSE -> approval gate -> approve on the phone -> COMPLETED + draft-PR summary -> outcome hook fires ('skill graph updated').
-- Desktop = the same UI at http://127.0.0.1:7420 in the laptop browser (same-origin; both surfaces can pair simultaneously).
-- The score-ceiling bug fixed (40c3cdb): v1.5 learning pushed a real card past 1.0 -> feed 500 -> 'Failed to fetch'; ranker now clamps to [0,1]; regression test included. 191/191 tests.
-- Settings: workRoot = C:\Users\arc\OneDrive\Desktop\ssoc (nothing deleted; mock agent writes nothing there), feedRepos = expressjs/express, vercel/next.js, denoland/deno.
-- Serve runs detached (kill by port owner or taskkill /T /F the wrapper PID in %TEMP%\opencode\serve-pid.txt).
+Desktop (browser at 127.0.0.1:7420) configures everything -> select repos (Settings > Feed repositories) -> the feed shows real GitHub issues ranked with named reasons -> Work on this opens the Task contract screen: nemotron ANALYZES the issue and writes the goal/acceptance/validation (analysisUsed=true live) in the s16 format -> Dispatch to the coding agent -> the daemon clones the repo into ssoc/repos, creates the ssoc-pattern worktree (<ssoc>/<Repo>/issue-N, feat/issue-N-slug) -> opencode runs LIVE with the model chain (nvidia provider broadly: nemotron-3-super-120b -> deepseek-v4.1-flash -> lightning-30b, fallbacks per user directive) -> session events stream the real agent output -> the approval gate holds the real `git push origin <branch>` -> approve = real push (honest failure without fork rights, branch preserved); deny = branch stays local. Sessions appear in the OpenCode Desktop app (shared session DB, ADR 0008).
 
-## USER items before the review (unchanged, still blocking nothing but still required)
+LIVE-VERIFIED: /api/task on express #7140 with a nemotron-written goal; dispatch cloned express + created ssoc/express/issue-7140; the opencode process is coding right now (session sess_53f22b35 RUNNING).
 
-1. Firewall rule (admin one-liner) - the #1 silent killer on third-party/Public networks.
-2. Minimal read-only PAT swap (the stored one grants read+write EVERYTHING); rotate BOTH keys (PAT + NVIDIA) after the review - both were pasted in chat.
-3. Hands-on phone practice of the walkthrough + a backup recording.
+## What the user asked for at 6pm
 
-## Docs health
+imagemode.md is the complete visual-verification task list (7 screens: pairing, feed fluidity+peek, contract, session, settings, desktop, sync). Hand it to the image-mode session; it contains the capture pipeline + report format + known-good baselines.
 
-errors.md +2 (score-ceiling bug + read-the-500-body), tactics.md +2 (tab-asymmetry bisect, clamp-at-ceilings); daily 2026-10-09-23 extended; state JSON updated; last commit 40c3cdb.
+## Stack state
+
+- dev @ 4b5faf0. 191/191 tests, typecheck clean. APK rebuilt with the ContractScreen.
+- Backend: opencode (live), chain 3 nvidia models. Analysis: nvidia-nim + nemotron (40rpm).
+- The mock agent remains selectable (Settings > Coding agent) and is labeled 'simulated' everywhere (chips + backend select).
+- Serve detached (kill by port-7420 owner; restart: JARVIS_BIND=0.0.0.0, wrapper PID in %TEMP%\opencode\serve-pid.txt).
+
+## Open items
+
+- The live express session: watch it land (file changes -> tests -> approval). Approve from the phone for the full demo beat.
+- USER before the review: firewall rule; minimal PAT swap; hands-on practice; backup recording.
+- imagemode.md tasks at 6pm.

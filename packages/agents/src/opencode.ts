@@ -26,9 +26,8 @@ export interface OpenCodeAdapterOptions {
 }
 
 export const DEFAULT_OPENCODE_MODEL_CHAIN = [
-  "nvidia/nvidia/nemotron-3-super-120b-a12b",
-  "nvidia/nvidia/deepseek-ai/deepseek-v4.1-flash",
   "nvidia/nvidia/nemotron-3.5-lightning-30b-a3b",
+  "nvidia/nvidia/nemotron-3-super-120b-a12b",
 ] as const;
 
 export const OPENCODE_TAKEOVER_NOTE =
@@ -62,6 +61,7 @@ export class OpenCodeAdapter implements AgentAdapter {
   private readonly chain: readonly string[];
   private readonly doSpawn: typeof spawn;
   private state: RunState | null = null;
+  opencodeSessionId: string | null = null;
 
   constructor(private readonly opts: OpenCodeAdapterOptions = {}) {
     this.chain = opts.modelChain ?? DEFAULT_OPENCODE_MODEL_CHAIN;
@@ -145,21 +145,22 @@ export class OpenCodeAdapter implements AgentAdapter {
 
   private runOnce(context: TaskContext, onEvent: (event: AdapterEvent) => void, model: string): Promise<"ok" | "approved-flow" | "retry" | "terminal-failure"> {
     return new Promise((resolve) => {
-      const { binary, args } = this.runCommandFor(context, model);
-      const child = this.doSpawn(resolveOpenCodeBinary(), args, { cwd: context.worktreePath });
+      const { args } = this.runCommandFor(context, model);
+      const prompt = args[args.length - 1] ?? "";
+      const jsonArgs = [...args.slice(0, -1), "--format", "json", prompt];
+      const child = this.doSpawn(resolveOpenCodeBinary(), jsonArgs, { cwd: context.worktreePath });
       if (this.state !== null) this.state.child = child;
       let producedOutput = false;
       let stderrTail = "";
-      const started = Date.now();
 
       const timer = setTimeout(() => {
         if (this.state !== null && !this.state.settled) {
           this.state.settled = true;
           child.kill();
-          onEvent({ kind: "failed", reason: `opencode run exceeded ${this.opts.maxRunMs ?? 600_000}ms` });
+          onEvent({ kind: "failed", reason: `opencode run exceeded ${this.opts.maxRunMs ?? 1_800_000}ms` });
         }
         resolve("terminal-failure");
-      }, this.opts.maxRunMs ?? 600_000);
+      }, this.opts.maxRunMs ?? 1_800_000);
 
       child.stdout?.on("data", (chunk: Buffer) => {
         const text = chunk.toString("utf-8");
@@ -167,7 +168,7 @@ export class OpenCodeAdapter implements AgentAdapter {
           const line = raw.trim();
           if (line.length === 0) continue;
           producedOutput = true;
-          onEvent({ kind: "message", text: line.slice(0, 300) });
+          this.emitJsonLine(line, onEvent);
         }
       });
       child.stderr?.on("data", (chunk: Buffer) => {
@@ -189,8 +190,49 @@ export class OpenCodeAdapter implements AgentAdapter {
         void this.finishRun(context, onEvent, code === 0);
         resolve("ok");
       });
-      void started;
     });
+  }
+
+  private emitJsonLine(line: string, onEvent: (event: AdapterEvent) => void): void {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(line) as {
+        type?: string;
+        sessionID?: string;
+        error?: { name?: string; message?: string };
+        part?: { type?: string; text?: string; reason?: string; tokens?: { total?: number } };
+      };
+    } catch {
+      onEvent({ kind: "message", text: line.slice(0, 300) });
+      return;
+    }
+    const ev = parsed as { type?: string; sessionID?: string; error?: { name?: string; message?: string }; part?: { type?: string; text?: string; reason?: string; tokens?: { total?: number } } };
+    if (this.opencodeSessionId === null && typeof ev.sessionID === "string") {
+      this.opencodeSessionId = ev.sessionID;
+      onEvent({ kind: "message", text: `opencode session ${ev.sessionID} - follow it live in the OpenCode Desktop app (shared session database)` });
+    }
+    if (ev.type === "error") {
+      const reason = `${ev.error?.name ?? "opencode error"}: ${ev.error?.message ?? "unknown"}`;
+      if (this.state !== null) this.state.settled = true;
+      onEvent({ kind: "failed", reason });
+      return;
+    }
+    const part = ev.part;
+    if (part === undefined) return;
+    if (part.type === "text" && typeof part.text === "string") {
+      if (part.text.trim().length > 0) onEvent({ kind: "message", text: part.text.slice(0, 300) });
+      return;
+    }
+    if (part.type === "step-start") {
+      onEvent({ kind: "thinking-summary", summary: "agent step started" });
+      return;
+    }
+    if (part.type === "step-finish") {
+      const tokens = part.tokens?.total ?? 0;
+      onEvent({ kind: "message", text: `step finished (${part.reason ?? "done"}, ${tokens} tokens)` });
+      return;
+    }
+    onEvent({ kind: "thinking-summary", summary: `agent: ${part.type ?? "event"}` });
   }
 
   private async finishRun(context: TaskContext, onEvent: (event: AdapterEvent) => void, cleanExit: boolean): Promise<void> {
