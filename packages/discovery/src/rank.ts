@@ -81,7 +81,7 @@ export function rankFeed(
         reasons.push({ type: "risk", value: "stale issue - maintainer may be inactive", positive: false });
       }
 
-      return { candidate, score: round(score), reasons, showAnyway: false };
+      return { candidate, score: round(Math.min(1, Math.max(0, score))), reasons, showAnyway: false };
     })
     .sort((a, b) => b.score - a.score);
 

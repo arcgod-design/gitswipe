@@ -126,6 +126,17 @@ describe("self-learning v1.5 - exit test replayed on outcomes", () => {
     expect(poolAfter.reasons.some((r) => r.type === "domain_match")).toBe(true);
     expect(chartsAfter.score).toBe(chartsBefore.score);
   });
+
+  it("learning never pushes a score past the 1.0 contract ceiling (the 500 regression)", () => {
+    const card = candidate({ key: "issue:demo/repo:20", number: 20, title: "Connection pool leaks sockets on forced disconnect", labels: ["networking"] });
+    let graph = seedFromLanguages(emptyGraph(), ["TypeScript"]);
+    graph = applySwipe(graph, { candidate_key: "k", action: "right", at: new Date().toISOString() }, "TypeScript", ["networking"], "Connection pool leaks sockets on forced disconnect");
+    graph = applyOutcome(graph, { language: "TypeScript", labels: ["networking"], title: card.title, result: "completed" });
+    graph = applyOutcome(graph, { language: "TypeScript", labels: ["networking"], title: card.title, result: "completed" });
+    const out = rankFeed([card], graph, []);
+    expect(out.feed[0]!.score).toBeLessThanOrEqual(1);
+    expect(out.feed[0]!.score).toBeGreaterThan(0.8);
+  });
 });
 
 describe("self-learning v1.5 - topicMatch shape", () => {
