@@ -27,17 +27,17 @@
 | Day | Date | Scope | Status |
 |---|---|---|---|
 | D1 | 2026-10-04 | BYOK on the app (H4): provider select + key store/remove/test, all via the daemon API into the OS secret store · workspace root (user folder or auto-created default) · nvidia-nim preset + live smoke (nemotron replied [OK]) · self-learning v1.5 design locked (below) | ✅ DONE (180/180 tests, live-verified) |
-| D2 | 2026-10-05 | **Self-learning v1.5** (below — demo differentiator) · Capacitor: init, wrap the web UI, secure storage for the device token, LAN pairing to the daemon | 🔜 NEXT |
-| D3 | 2026-10-08 | Android: install APK on the physical phone (adb) + LAN/tailnet→**tunnel** verification · **Transport per ADR 0009: Cloudflare Quick Tunnel (primary, phone installs nothing, daemon stays loopback) + phone-hotspot LAN (offline fallback)** — daemon work: configurable bind + configurable origin allowlist (both paths share it) · PAT verify + real-repo feed (if token stored) · hardening: no-hidden-retry audit of `@jarvis/github` write paths (OpenMuse rule), reconnect/replay E2E, Lighthouse pass |
-| D4 | 2026-10-09 (review day) | Rehearsal: full walkthrough (pair → feed → swipe → show the learning change the ranking → session → approve → COMPLETED → phone via tunnel), demo data seeding, backup recording, tunnel up/down runbook, docs |
+| D2 | 2026-10-05 | **Self-learning v1.5** (below — demo differentiator) · Capacitor: init, wrap the web UI, secure storage for the device token, LAN pairing to the daemon | ✅ DONE (outcome feedback + topic tags + decay live-verified; APK built, on the phone) |
+| D3 | 2026-10-08 | Android: install APK on the physical phone (adb) + **transport per ADR 0009: phone-hotspot LAN (demo primary) + Cloudflare Quick Tunnel (secondary)** — configurable bind + origin allowlist + CORS · PAT verify + real-repo feed · hardening | ✅ DONE (transport live-verified: CORS preflight + cross-origin pair/feed + evil-origin 403 + LAN banner; PAT stored → real feed: express/next.js/deno; APK on device; score-ceiling fix; hardening items — no-hidden-retry audit, Lighthouse — honestly deferred) |
+| D4 | 2026-10-09 (review day) | Rehearsal: full walkthrough (pair → feed → swipe → show the learning change the ranking → session → approve → COMPLETED → phone), backup recording, runbook, docs | 🔶 IN PROGRESS — adb-driven rehearsal COMPLETE on real data (0.43 → 0.92 named-reasons proof → session → approval → COMPLETED → outcome hook). Remaining: USER hands-on walkthrough + backup recording + firewall rule + minimal PAT swap |
 
 ### User's pre-D3 checklist (updated 2026-10-07, ADR 0009 — Tailscale REMOVED)
 
 1. ~~Android SDK setup~~ — DONE (all components verified on disk; IDE display fixed via hand-written package.xml).
-2. Phone: USB debugging ON, plug into the laptop.
-3. GitHub fine-grained PAT via `npm run daemon -- secret set github:token` (stdin — never in chat). Scopes: Metadata/Issues/Pull requests, read-only. **The token was reported stored but is NOT in the store — rerun the command.**
-4. ~~Tailscale~~ — REMOVED per ADR 0009. Nothing to install. Demo runs via Cloudflare Quick Tunnel (laptop-only binary, no account) with the phone hotspot as offline fallback.
-| D4 | 2026-10-07 | Rehearsal: full walkthrough script (pair → feed → swipe → show the learning change the ranking → session → approve → COMPLETED → phone if APK ready), demo data seeding, backup recording, docs |
+2. ~~Phone: USB debugging ON, plug into the laptop~~ — DONE (device visible, APK installed to User 0, full loop driven on it).
+3. ~~GitHub fine-grained PAT~~ — STORED + live-verified (arcgod-design, 4999/5000). **Still open: swap to a minimal read-only PAT before the review (the stored one grants read+write EVERYTHING) and rotate both keys after (both were pasted in chat).**
+4. ~~Tailscale~~ — REMOVED per ADR 0009. Nothing to install. Demo runs over the phone hotspot (primary) with the Cloudflare Quick Tunnel as the away-from-lab path.
+5. **STILL OPEN: the firewall rule** (admin one-liner in the runbook + guide) — the #1 silent killer on third-party/Public networks.
 
 ### Self-learning v1.5 (D2 — the demo differentiator; deterministic + explainable, contract §9/§14)
 
