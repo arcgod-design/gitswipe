@@ -1,23 +1,19 @@
-# SESSION-STATE.md — as of 2026-10-09 (review day, session 23: full loop live on real data)
+# SESSION-STATE.md — as of 2026-10-09 (review day, post-fix; session 23 continuing)
 
-## THE REHEARSAL IS COMPLETE - verified on the physical phone, over its own hotspot, on REAL GitHub data
+## The state of the demo (all device-verified on real data)
 
-pair -> real feed (express/next.js/deno via PAT) -> swipe right (drag gesture) -> next card jumped 0.43 -> 0.92 with three named reasons (skill_match + domain_match 'res' + saved_similarity) -> Work on this -> agent session, live SSE -> approval gate held the push -> approved on the phone -> COMPLETED (commit + npm test + draft PR summary) -> serve log: 'outcome: session completed - skill graph updated'.
+- Full loop live: pair -> real feed (express/next.js/deno via PAT) -> Tinder-drag swipe -> ranking learns (0.43 -> 0.92, named reasons) -> Work on this -> session + live SSE -> approval gate -> approve on the phone -> COMPLETED + draft-PR summary -> outcome hook fires ('skill graph updated').
+- Desktop = the same UI at http://127.0.0.1:7420 in the laptop browser (same-origin; both surfaces can pair simultaneously).
+- The score-ceiling bug fixed (40c3cdb): v1.5 learning pushed a real card past 1.0 -> feed 500 -> 'Failed to fetch'; ranker now clamps to [0,1]; regression test included. 191/191 tests.
+- Settings: workRoot = C:\Users\arc\OneDrive\Desktop\ssoc (nothing deleted; mock agent writes nothing there), feedRepos = expressjs/express, vercel/next.js, denoland/deno.
+- Serve runs detached (kill by port owner or taskkill /T /F the wrapper PID in %TEMP%\opencode\serve-pid.txt).
 
-Desktop = the same UI at http://127.0.0.1:7420 in the laptop browser (same-origin; leave the workstation URL empty there). Both surfaces can be paired at once.
+## USER items before the review (unchanged, still blocking nothing but still required)
 
-## Stack state
-
-- dev @ 744760c. 190/190 tests, typecheck clean. APK on the phone (current). Serve running detached (kill via the port owner, or taskkill /T /F on the wrapper PID).
-- Settings: workRoot = C:\Users\arc\OneDrive\Desktop\ssoc (nothing deleted; the mock agent writes nothing there yet), feedRepos = expressjs/express, vercel/next.js, denoland/deno; provider nvidia-nim + nemotron.
-- Self-learning v1.5 + whyNot show-anyway + Tinder swipe + stamps: all live on device.
-
-## Remaining before the review (USER)
-
-1. Firewall rule (admin, one command - the #1 silent killer on third-party/Public networks).
-2. Minimal read-only PAT swap (current token is read+write EVERYTHING; swap via secret set github:token), then rotate BOTH keys after the review.
-3. Hands-on practice: run the walkthrough yourself on the phone (pair -> swipe -> work -> approve). Record a backup video.
+1. Firewall rule (admin one-liner) - the #1 silent killer on third-party/Public networks.
+2. Minimal read-only PAT swap (the stored one grants read+write EVERYTHING); rotate BOTH keys (PAT + NVIDIA) after the review - both were pasted in chat.
+3. Hands-on phone practice of the walkthrough + a backup recording.
 
 ## Docs health
 
-errors.md +3 (orphan node on wrapper kill, integer tap coords, leading-space button text); daily 2026-10-09-23; state JSONs current.
+errors.md +2 (score-ceiling bug + read-the-500-body), tactics.md +2 (tab-asymmetry bisect, clamp-at-ceilings); daily 2026-10-09-23 extended; state JSON updated; last commit 40c3cdb.

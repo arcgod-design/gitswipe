@@ -1,9 +1,14 @@
 {
-  "date": "2026-10-09 (session 23)",
+  "date": "2026-10-09 (session 23, continuing)",
   "context": "REVIEW DAY",
-  "rehearsal": "complete - full loop on real data, on the physical phone, over the phone hotspot",
-  "loop_proof": ["pair", "real feed 12 candidates", "swipe gesture -> ranking 0.43->0.92 + named reasons", "session + live SSE", "approval gate", "approve -> COMPLETED + draft PR summary", "outcome hook fired"],
-  "commits": ["744760c"],
-  "user_remaining": ["firewall rule", "minimal PAT swap + rotate keys after", "hands-on practice + backup recording"],
-  "desktop_answer": "same UI at http://127.0.0.1:7420 in the laptop browser - one UI, two surfaces"
+  "rehearsal": "complete - full loop verified on the physical phone over the phone hotspot on real GitHub data",
+  "post_rehearsal_fix": "score-ceiling clamp (40c3cdb): learning pushed a real card past 1.0 -> feed 500; fixed + regression test; phone verified after",
+  "verified": [
+    "191/191 tests, typecheck clean",
+    "phone feed renders real express cards post-fix",
+    "outcome hook + swipe learning + approval gate all device-proven"
+  ],
+  "commits": ["744760c", "e9947e7", "40c3cdb"],
+  "user_remaining": ["firewall rule", "minimal PAT swap + rotate both keys after", "hands-on practice + backup recording"],
+  "next_step": "user runs the walkthrough themselves; firewall + PAT swap; record backup; then the review"
 }

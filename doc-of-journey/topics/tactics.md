@@ -20,3 +20,5 @@
 - **settings.json = the user-intent persistence layer**: env overrides stay king (s116 dev discipline), settings.json records what the app UI changed (workRoot, providerId, model), defaults fill the rest. Atomic tmp+rename writes, same as the stores.
 - **Reasoning-model pings**: maxTokens 300+ for any short chat test against reasoning models (nemotron-3 family); check usage vs content before suspecting the parser.
 - **Two input classes by purpose**: .pair-input (uppercase mono, codes) vs .form-input (normal mono, general forms) - pick by whether uppercase display is the intent.
+- **Tab-asymmetry bisect for 'Failed to fetch' in a multi-endpoint app**: check a KNOWN-GOOD endpoint in the same app (the Workstation tab) before touching code - server-alive + IP-check + browser-test all passed, and the asymmetry isolated the fault to one route in one minute.
+- **Clamp learned signals at schema ceilings**: any additive learning signal that feeds a validated output (score in [0,1]) must be clamped where it is produced, with a test that over-boosts the graph and asserts the ceiling.
