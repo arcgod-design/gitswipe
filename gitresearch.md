@@ -262,6 +262,15 @@ Four repos, zero dependencies, zero stack changes, five patterns recorded (routi
 
 ---
 
+| gitswipe.com (iOS app) | GitHub notification triage: swipe to archive, multi-account, CI status, inline diffs, Enterprise | ~App Store | proprietary | 🚫 COMPETITOR-CLASS (dispatch-irrelevant) | notification inbox-zero; NO agents, NO dispatch, NO contracts, NO approvals, NO learning, NO BYOK models. Superiority already total - the gap is onboarding polish (one-tap store install vs our setup). Destroy via: the one-click installer + the sessions/agents screen. |
+| Tahlasandale/GitSwipe (0 stars) | single-file PWA: swipe trending repos to star; Gemini repo chat; vault | 0 | MIT | 🚫 SKIP | a weekend toy - keys in localStorage (the security posture we refuse); no execution plane at all. |
+| gitswipe.brooksc.com | swipe repos to star; README in card; local SQLite; Android APK | small | OSS | 🚫 SKIP | discovery-to-star only; no agents, no contracts, no gate. |
+
+| goodnight000/api-anything | Turn any website into an agent-callable API: Chrome watches 2 example inputs -> request template with slots -> plain-HTTP calls (tier 1) with browser fallback + self-repair; MCP + CLI + TS; cookie/session import; 22 read ops across 9 sites | 502 | MIT | ⚠️ PATTERNS + POST-DEMO HARNESS TOOL DOOR | different domain (web->API, not GitHub discovery - GitHub has a real API, we never scrape it). WHERE IT MATTERS FOR US: the 'proper harness' the user just locked - api-anything mounted as an MCP tool gives our dispatched coding agents web access that heals itself (e.g. 'check the current docs format' becomes a tier-1 call, not a browser fight). Benchmarked 1.5-2x faster + half the tokens for agents. Patterns worth stealing: self-healing operation templates (save only after a successful replay - the same religion as our no-hidden-retry rule), credential references not values (our broker does this), tiered fallback (plain HTTP -> in-page fetch -> run the page). SUGGESTIONS: optional MCP tool in the agent worktree toolbox (needs the s118 policy story for network-class agent calls). |
+## Competitive conclusion (2026-10-09, user directive: destroy them)
+
+All three are Discover-only surfaces (notifications or starring). NONE executes work, writes contracts, runs a real coding agent, gates pushes, or learns from outcomes. GitSwipe (ours) is the only one with the full Discover->Decide->Execute->Supervise loop - verified live on real GitHub data. What they have that we lack: friction-free onboarding (store install / one-file PWA) and always-visible session/history surfaces. Both are now in scope: the one-click installer (start-gitswipe.bat -> .exe later) + the Sessions/Agents screen with pending-approval badges.
+
 ## Evaluation queue / template for future entries
 
 Use the structure above: identity block (repo/stars/license/activity) → what it actually is → quality signals (honest) → brutal verdict (taken / refused / post-v1 doors) → scorecard. Research via `gh repo view` + README + tree (the backend agent-reach routes to for GitHub); record the date; never let a research doc change a locked decision — that needs an ADR.
