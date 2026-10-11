@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-09 (session 26, night)",
+  "context": "production-lock session - the master prompt is the track",
+  "shipped": [
+    "s36 desktop sidebar shell + s35 mobile tab bar (wordmark restored after the rebuild dropped it)",
+    "right-swipe -> contract screen (locked)",
+    "Approvals section + badges (locked)",
+    "one-click start-gitswipe.bat + pair-gitswipe.bat with cloudflared handling",
+    "WEEK-13 + WEEK-14 created (the soon-sections + the orchestration v1.1)",
+    "gitresearch: competitor verdicts (3 gitswipes) + api-anything harness door"
+  ],
+  "verified": ["191/191 tests", "typecheck clean", "phone dump: tabs + card + GitSwipe wordmark"],
+  "commits": ["4b3bb2e", "42f4fef", "+ this one"],
+  "locks_recorded": ["right-swipe->contract", "s36 sidebar / s35 tabs", "journal-persisted sessions", "sequential multi-agent (API budgets)", "v1.1 orchestration roadmap"],
+  "next_step": "complete WEEK-09..12 (existing ladder), then WEEK-13/14; journal-backed session list wiring is the first WEEK-13 item"
+}

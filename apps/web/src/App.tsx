@@ -1158,6 +1158,11 @@ export default function App() {
             </nav>
           </aside>
           <main className="main-pane">
+            <header className="mobile-header">
+              <span className="wordmark">
+                Git<span className="swipe">Swipe</span>
+              </span>
+            </header>
             {screen.name === "feed" ? (
               <>
                 {workError !== null ? (

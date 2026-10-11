@@ -166,3 +166,27 @@ Review day sequence:
 3. `npm run daemon -- pair` - pairing code.
 4. Phone app: enter the LAN URL + the code. Done.
 5. Optional away-from-lab path: `cloudflared tunnel --url http://127.0.0.1:7420` and use the printed https URL instead (daemon stays loopback-bound).
+
+## Production-lock session (2026-10-09 evening, user-verified locks)
+
+| Lock | Decision |
+|---|---|
+| Right-swipe | opens the Task contract screen (swipe = intent, dispatch = explicit); the swipe still records for learning |
+| Desktop layout | the s36 left sidebar (Discover/Agents/Approvals/Work/Projects/References/Activity/Workstation) + wide main pane - BUILT |
+| Mobile layout | s35 bottom tab bar (Feed/Agents+badge/Workstation) + compact wordmark header - BUILT |
+| Session history | persists via the event journal (the Agents list rebuilds from journal + live sessions) - WEEK-13 wiring |
+| Multi-agent | SEQUENTIAL by design (harness API budgets); a second dispatch queues honestly - WEEK-14 |
+| Orchestration | v1.1 roadmap LOCKED: model-type routing (analysis/coding/review), semantic event handlers, harness tool doors (api-anything MCP), adapter catalog - WEEK-14 |
+
+## Extended ladder (the 'soon' sections the user ordered built - no zombie ideas)
+
+| Week | Theme | Status |
+|---|---|---|
+| WEEK-09 | Android completion: notifications, offline replay, release config | PENDING (APK done; notifications + offline remain) |
+| WEEK-10 | Hardening: recovery, security fixtures, backpressure | PENDING |
+| WEEK-11 | Packaging + CI/CD + docs (semgrep gate, installers) | PENDING |
+| WEEK-12 | Master acceptance (s215) + v1 ship | PENDING |
+| WEEK-13 | Completion surfaces: Work, Projects (radar UI), References (reference-mode UI), Activity (journal timeline), session tabs (Diff/Tests), card completion (s9.2 rows) | NEW - queued |
+| WEEK-14 | Orchestration + harness v1.1: routing UI, semantic handlers, sequential queue, MCP tool doors, adapter catalog, PR lifecycle tail | NEW - queued |
+
+Every 'soon' tag in the nav maps to WEEK-13; the orchestration direction maps to WEEK-14. No section is left without a week.
