@@ -1,27 +1,30 @@
-# SESSION-STATE.md — as of 2026-10-09 late night (session 27: THE PR LANDED)
+# SESSION-STATE.md — as of 2026-10-09 deep night (session 28: the file-transport switch, first attempt failed)
 
-## THE MILESTONE
+## The milestone standing
 
-https://github.com/expressjs/express/pull/7520 - the full contract loop on a real major OSS repo: swipe -> nemotron analysis -> task contract (TASK_CONTRACT.md in the worktree) -> the agent's fix -> fork -> push -> PR, closes #7140. Under the user's real account. The gh CLI is now a first-class harness capability (check + fork + default-branch detection + automated PR creation with the honest compare-URL fallback).
+https://github.com/expressjs/express/pull/7520 - the real PR landed (gh CLI is a harness citizen: check + fork + default-branch + automated PR creation). The full loop is proven end to end on a real major OSS repo.
 
-## Current stack state (all live)
+## THE OPEN BLOCKER (WEEK-10 core, in flight)
 
-- Serve: detached, banner shows opencode (live) + the model chain + gh (logged in: arcgod-design)
-- The Agents list: journal-backed (survives restarts), FAILED states honest (red badge + the recorded reason)
-- Session history: sessions.jsonl + journal state derivation
-- The responsive shells: desktop s36 sidebar / mobile s35 tab bar + wordmark
-- The adapter: silence watchdog (5 min -> model rotation), liveness heartbeats, Windows tree-kill, the PR creator callback
-- 191/191 tests, typecheck clean, APK current, everything committed (c86959b)
+The pipe-buffering fix (dispatched opencode runs stream to files, never to the daemon's pipes). The adapter was switched to cmd-redirect + file-tail. FIRST ATTEMPT FAILED: the cmd line itself is broken (exit 1 instantly, zero output, both models) - the quoting of the long --title/redirect needs the manual-echo debug pass (errors.md has the sequence). The tail-watcher architecture is sound + tested; only the shell line is broken.
 
-## THE REMAINING WORK (the weeks ladder, in order)
+## The stack (all committed)
 
-- WEEK-09 remainder: mobile notifications (approval/completion), offline event replay, release build config
-- WEEK-10: hardening - the pipe-buffering fix (file-redirect transport for opencode output; THE known blocker for unattended dispatched runs), reconnect/replay E2E, no-hidden-retry audit, security fixtures, Lighthouse
-- WEEK-11: packaging + CI/CD (semgrep gate, installers, PROVIDER_GUIDE with the litellm one-liner)
+- Journal-backed session history (survives restarts) + honest FAILED states (red badge + reason)
+- The responsive shells (s36 sidebar / s35 tabs + wordmark)
+- gh harness integration (fork, default-branch, PR creation + fallbacks)
+- The adapter: watchdog + rotation + tree-kill + the PR creator + (new) the file-tail transport
+- 191/191 tests, typecheck clean; commits through 8285c1c + the transport switch
+
+## The weeks ladder (the remaining work, in order)
+
+- WEEK-10 core: fix the cmd quoting -> LIVE re-dispatch proof (the file transport) -> then reconnect/replay E2E, no-hidden-retry audit, security fixtures, Lighthouse
+- WEEK-09 remainder: mobile notifications (approval/completion), offline replay, release config
+- WEEK-11: packaging + CI (semgrep gate, installers, PROVIDER_GUIDE)
 - WEEK-12: master acceptance (s215) + v1 ship
-- WEEK-13: Work/Projects/References/Activity surfaces + session tabs (Diff/Tests) + s9.2 card rows
-- WEEK-14: orchestration v1.1 (routing UI, semantic handlers, sequential queue, MCP doors, adapter catalog) - the PR tail is DONE via gh
+- WEEK-13: Work/Projects/References/Activity + session tabs + s9.2 rows
+- WEEK-14: orchestration v1.1 (routing UI, semantic handlers, the queue, MCP doors, adapter catalog) - the PR tail is DONE
 
 ## User items
 
-Minimal PAT swap + rotate both keys after the demo. Hands-on walkthrough + backup recording. imagemode.md visual passes.
+Minimal PAT swap + rotate both keys. Hands-on walkthrough + backup recording. imagemode.md visual passes.

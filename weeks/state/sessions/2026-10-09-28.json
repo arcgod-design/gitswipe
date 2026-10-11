@@ -1,0 +1,8 @@
+{
+  "date": "2026-10-09 (session 28, deep night)",
+  "in_flight": "WEEK-10 core: the pipe-buffering file-transport fix",
+  "attempt": "cmd-redirect + file-tail shipped; the cmd line itself failed (exit 1, zero output) - quoting bug, debug sequence recorded",
+  "standing_milestone": "express PR #7520 landed; gh is a harness citizen",
+  "verified": ["typecheck clean", "191/191 tests (13 agents incl. the tail-aware fakes)"],
+  "next_step": "echo + manually run the exact cmdLine, fix quoting, LIVE re-dispatch to prove streamed agent events"
+}

@@ -1,12 +1,18 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { execFile } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, openSync, readSync, closeSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { promisify } from "node:util";
 import type { AdapterEvent, AgentAdapter, TaskContext } from "./adapter.js";
 import { probeBinary } from "./adapter.js";
 
 const execFileAsync = promisify(execFile);
+
+function quoteCmdArg(arg: string): string {
+  if (/^[A-Za-z0-9_@%+=:,./-]+$/.test(arg)) return arg;
+  return `"${arg.replace(/"/g, '""')}"`;
+}
 
 export function resolveOpenCodeBinary(): string {
   if (process.platform === "win32") {
@@ -151,11 +157,13 @@ export class OpenCodeAdapter implements AgentAdapter {
       const { args } = this.runCommandFor(context, model);
       const prompt = args[args.length - 1] ?? "";
       const jsonArgs = [...args.slice(0, -1), "--format", "json", prompt];
-      const child = this.doSpawn(resolveOpenCodeBinary(), jsonArgs, { cwd: context.worktreePath });
+      const exe = resolveOpenCodeBinary();
+      const outFile = join(tmpdir(), `gitswipe-oc-${Date.now()}.jsonl`);
+      const cmdLine = [exe, ...jsonArgs.map(quoteCmdArg)].join(" ") + ` > "${outFile}" 2>&1`;
+      const child = this.doSpawn("cmd.exe", ["/c", cmdLine], { cwd: context.worktreePath });
       if (this.state !== null) this.state.child = child;
       let producedOutput = false;
       let lastOutput = Date.now();
-      let stderrTail = "";
       let rotated = false;
 
       const killTree = (): void => {
@@ -167,10 +175,41 @@ export class OpenCodeAdapter implements AgentAdapter {
         }
       };
 
+      const drainFile = (): void => {
+        if (!existsSync(outFile)) return;
+        let fd: number;
+        try {
+          fd = openSync(outFile, "r");
+        } catch {
+          return;
+        }
+        try {
+          const size = statSync(outFile).size;
+          if (size <= drainOffset) return;
+          const buffer = Buffer.alloc(size - drainOffset);
+          readSync(fd, buffer, 0, buffer.length, drainOffset);
+          drainOffset = size;
+          for (const raw of buffer.toString("utf-8").split(/\r?\n/)) {
+            const line = raw.trim();
+            if (line.length === 0) continue;
+            producedOutput = true;
+            lastOutput = Date.now();
+            this.emitJsonLine(line, onEvent);
+          }
+        } finally {
+          closeSync(fd);
+        }
+      };
+      let drainOffset = 0;
+
+      const tailTimer = setInterval(drainFile, 500);
+
       const timer = setTimeout(() => {
         if (this.state !== null && !this.state.settled) {
           this.state.settled = true;
           killTree();
+          clearInterval(tailTimer);
+          drainFile();
           onEvent({ kind: "failed", reason: `opencode run exceeded ${this.opts.maxRunMs ?? 1_800_000}ms` });
         }
         resolve("terminal-failure");
@@ -185,6 +224,7 @@ export class OpenCodeAdapter implements AgentAdapter {
         if (!producedOutput && silentMs >= (this.opts.silentRetryMs ?? 300_000)) {
           rotated = true;
           clearInterval(watchdog);
+          clearInterval(tailTimer);
           clearTimeout(timer);
           onEvent({ kind: "message", text: `no output from ${model} for ${Math.round(silentMs / 60_000)} minutes - rotating to the next model in the chain` });
           killTree();
@@ -195,22 +235,10 @@ export class OpenCodeAdapter implements AgentAdapter {
         }
       }, 30_000);
 
-      child.stdout?.on("data", (chunk: Buffer) => {
-        const text = chunk.toString("utf-8");
-        for (const raw of text.split(/\r?\n/)) {
-          const line = raw.trim();
-          if (line.length === 0) continue;
-          producedOutput = true;
-          lastOutput = Date.now();
-          this.emitJsonLine(line, onEvent);
-        }
-      });
-      child.stderr?.on("data", (chunk: Buffer) => {
-        stderrTail = `${stderrTail}${chunk.toString("utf-8")}`.slice(-400);
-      });
       child.on("error", (err) => {
         clearTimeout(timer);
         clearInterval(watchdog);
+        clearInterval(tailTimer);
         if (this.state !== null && this.state.settled) return resolve("terminal-failure");
         onEvent({ kind: "message", text: `opencode failed to start: ${err.message}` });
         resolve(producedOutput ? "terminal-failure" : "retry");
@@ -218,10 +246,12 @@ export class OpenCodeAdapter implements AgentAdapter {
       child.on("close", (code) => {
         clearTimeout(timer);
         clearInterval(watchdog);
+        clearInterval(tailTimer);
+        drainFile();
         if (rotated) return;
         if (this.state !== null && this.state.settled) return resolve("terminal-failure");
         if (code !== 0 && !producedOutput) {
-          onEvent({ kind: "message", text: `opencode exited ${code} before any output${stderrTail.length > 0 ? `: ${stderrTail.trim().slice(0, 200)}` : ""}` });
+          onEvent({ kind: "message", text: `opencode exited ${code} before any output (see the session log)` });
           return resolve("retry");
         }
         void this.finishRun(context, onEvent, code === 0);
