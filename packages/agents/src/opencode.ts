@@ -22,6 +22,7 @@ export interface OpenCodeAdapterOptions {
   probeBinary?: (binary: string, args?: readonly string[]) => Promise<{ ok: boolean; detail: string }>;
   fetch?: typeof globalThis.fetch;
   spawnFn?: typeof spawn;
+  silentRetryMs?: number;
   maxRunMs?: number;
 }
 
@@ -151,16 +152,46 @@ export class OpenCodeAdapter implements AgentAdapter {
       const child = this.doSpawn(resolveOpenCodeBinary(), jsonArgs, { cwd: context.worktreePath });
       if (this.state !== null) this.state.child = child;
       let producedOutput = false;
+      let lastOutput = Date.now();
       let stderrTail = "";
+      let rotated = false;
+
+      const killTree = (): void => {
+        if (child.pid === undefined) return;
+        if (process.platform === "win32") {
+          void spawn("taskkill", ["/PID", String(child.pid), "/T", "/F"]);
+        } else {
+          child.kill();
+        }
+      };
 
       const timer = setTimeout(() => {
         if (this.state !== null && !this.state.settled) {
           this.state.settled = true;
-          child.kill();
+          killTree();
           onEvent({ kind: "failed", reason: `opencode run exceeded ${this.opts.maxRunMs ?? 1_800_000}ms` });
         }
         resolve("terminal-failure");
       }, this.opts.maxRunMs ?? 1_800_000);
+
+      const watchdog = setInterval(() => {
+        if (this.state === null || this.state.settled) {
+          clearInterval(watchdog);
+          return;
+        }
+        const silentMs = Date.now() - lastOutput;
+        if (!producedOutput && silentMs >= (this.opts.silentRetryMs ?? 300_000)) {
+          rotated = true;
+          clearInterval(watchdog);
+          clearTimeout(timer);
+          onEvent({ kind: "message", text: `no output from ${model} for ${Math.round(silentMs / 60_000)} minutes - rotating to the next model in the chain` });
+          killTree();
+          resolve("retry");
+        } else if (producedOutput && silentMs >= 300_000) {
+          onEvent({ kind: "thinking-summary", summary: `still working - ${Math.round(silentMs / 60_000)} minutes since the last event` });
+          lastOutput = Date.now();
+        }
+      }, 30_000);
 
       child.stdout?.on("data", (chunk: Buffer) => {
         const text = chunk.toString("utf-8");
@@ -168,6 +199,7 @@ export class OpenCodeAdapter implements AgentAdapter {
           const line = raw.trim();
           if (line.length === 0) continue;
           producedOutput = true;
+          lastOutput = Date.now();
           this.emitJsonLine(line, onEvent);
         }
       });
@@ -176,12 +208,15 @@ export class OpenCodeAdapter implements AgentAdapter {
       });
       child.on("error", (err) => {
         clearTimeout(timer);
+        clearInterval(watchdog);
         if (this.state !== null && this.state.settled) return resolve("terminal-failure");
         onEvent({ kind: "message", text: `opencode failed to start: ${err.message}` });
         resolve(producedOutput ? "terminal-failure" : "retry");
       });
       child.on("close", (code) => {
         clearTimeout(timer);
+        clearInterval(watchdog);
+        if (rotated) return;
         if (this.state !== null && this.state.settled) return resolve("terminal-failure");
         if (code !== 0 && !producedOutput) {
           onEvent({ kind: "message", text: `opencode exited ${code} before any output${stderrTail.length > 0 ? `: ${stderrTail.trim().slice(0, 200)}` : ""}` });
