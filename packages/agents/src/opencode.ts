@@ -24,6 +24,7 @@ export interface OpenCodeAdapterOptions {
   spawnFn?: typeof spawn;
   silentRetryMs?: number;
   maxRunMs?: number;
+  createPullRequest?: (input: { upstream: string; head: string; base: string; title: string; body: string }) => Promise<{ ok: boolean; url?: string; detail: string }>;
 }
 
 export const DEFAULT_OPENCODE_MODEL_CHAIN = [
@@ -53,6 +54,7 @@ interface RunState {
   child: ChildProcess | null;
   settled: boolean;
   approvalAction: string | null;
+  forkOwner: string | null;
 }
 
 export class OpenCodeAdapter implements AgentAdapter {
@@ -108,7 +110,7 @@ export class OpenCodeAdapter implements AgentAdapter {
       onEvent({ kind: "failed", reason: "an opencode run is already active on this adapter" });
       return;
     }
-    this.state = { context, onEvent, child: null, settled: false, approvalAction: null };
+    this.state = { context, onEvent, child: null, settled: false, approvalAction: null, forkOwner: null };
     void this.runWithFallback(context, onEvent);
   }
 
@@ -315,6 +317,10 @@ export class OpenCodeAdapter implements AgentAdapter {
     onEvent({ kind: "approval-request", action: pushCommand, payload: { branch, worktreePath: context.worktreePath } });
   }
 
+  setForkOwner(owner: string | null): void {
+    if (this.state !== null) this.state.forkOwner = owner;
+  }
+
   private async executeApproval(state: RunState, approve: boolean): Promise<void> {
     if (!approve) {
       state.settled = true;
@@ -324,10 +330,26 @@ export class OpenCodeAdapter implements AgentAdapter {
     }
     const command = state.approvalAction ?? `git push origin ${state.context.branch}`;
     try {
-      await execFileAsync("git", ["-C", state.context.worktreePath, "push", "origin", state.context.branch], { timeout: 120_000 });
+      await execFileAsync("git", ["-C", state.context.worktreePath, "push", "origin", state.context.worktreePath.includes("issue-") ? state.context.branch : state.context.branch], { timeout: 120_000 });
       state.onEvent({ kind: "command", command, exitCode: 0 });
+      let prLine = `branch ${state.context.branch} pushed to the fork - open the PR from your fork when ready`;
+      if (state.forkOwner !== null && this.opts.createPullRequest !== undefined) {
+        state.onEvent({ kind: "thinking-summary", summary: "creating the pull request..." });
+        const pr = await this.opts.createPullRequest({
+          upstream: state.context.repository,
+          head: `${state.forkOwner}:${state.context.branch}`,
+          base: "master",
+          title: `GitSwipe: work for ${state.context.repository} (${state.context.branch})`,
+          body: `Automated contribution from GitSwipe.\n\nBranch: ${state.context.branch}\n\nCloses the linked issue per the task contract.`,
+        });
+        if (pr.ok) {
+          prLine = `pull request created: ${pr.url ?? pr.detail}`;
+        } else {
+          prLine = `push succeeded; PR creation failed (${pr.detail.slice(0, 120)}) - open it from the fork branch ${state.context.branch}`;
+        }
+      }
       state.settled = true;
-      state.onEvent({ kind: "completed", summary: `branch ${state.context.branch} pushed to origin (fork) - open the PR from your fork; commits carry (closes #N) keywords per the ssoc pattern` });
+      state.onEvent({ kind: "completed", summary: prLine });
     } catch (err) {
       state.onEvent({ kind: "command", command, exitCode: 1 });
       state.settled = true;

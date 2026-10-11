@@ -454,11 +454,21 @@ async function buildProductionSessions(dataDir: string, journal: import("./works
     let adapter: import("@jarvis/agents").AgentAdapter = new agents.MockAgentAdapter(60);
     let backendLabel = "mock (simulated timeline - set agentBackend=opencode for real dispatch)";
     if (settings.agentBackend === "opencode") {
-      const oc = new agents.OpenCodeAdapter({ modelChain: settings.agentModelChain });
+      const ghCli = await task.checkGitHubCli();
+      const oc = new agents.OpenCodeAdapter({
+        modelChain: settings.agentModelChain,
+        createPullRequest: async (input) => {
+          const pr = await task.createPullRequestViaCli(input);
+          if (!pr.ok) {
+            process.stderr.write(`  gh pr create failed (${pr.detail.slice(0, 120)}) - the API/compare fallback applies\n`);
+          }
+          return pr;
+        },
+      });
       const avail = await oc.available();
       if (avail.ok) {
         adapter = oc;
-        backendLabel = `opencode (live) - model chain: ${(settings.agentModelChain ?? agents.DEFAULT_OPENCODE_MODEL_CHAIN).join(" -> ")}`;
+        backendLabel = `opencode (live) - model chain: ${(settings.agentModelChain ?? agents.DEFAULT_OPENCODE_MODEL_CHAIN).join(" -> ")} | gh: ${ghCli.detail}`;
       } else {
         process.stderr.write(`  opencode unavailable (${avail.detail}) - falling back to the simulated agent\n`);
       }
@@ -555,13 +565,29 @@ async function buildProductionSessions(dataDir: string, journal: import("./works
           } else {
             worktreePath = join(workRoot, slug, `issue-${candidate.number}`);
           }
+          const ghCli = await task.checkGitHubCli();
+          process.stdout.write(`  github cli: ${ghCli.detail}\n`);
+          if (ghCli.loggedIn !== null && adapter.id === "opencode") {
+            (adapter as import("@jarvis/agents").OpenCodeAdapter).setForkOwner(ghCli.loggedIn);
+          }
+          let baseBranch = await task.defaultBranchOf(candidate.repoFullName);
+          if (ghCli.loggedIn !== null) {
+            const fork = await task.forkRepository(candidate.repoFullName);
+            process.stdout.write(`  fork: ${fork.detail}\n`);
+            const forkUrl = `https://github.com/${ghCli.loggedIn}/${slug}.git`;
+            await execFileAsync("git", ["-C", worktreePath, "remote", "remove", "origin"]).catch(() => undefined);
+            await execFileAsync("git", ["-C", worktreePath, "remote", "add", "origin", forkUrl]);
+            await execFileAsync("git", ["-C", worktreePath, "remote", "add", "upstream", `https://github.com/${candidate.repoFullName}.git`]).catch(() => undefined);
+          }
           const analysis = await task.aiRefineAnalysis(secretStore, settings.providerId, settings.model, candidate);
           const contract = task.buildTaskContract(candidate, analysis);
+          contract.base_branch = baseBranch;
+          contract.git_workflow.pr_base_branch = baseBranch;
           const { writeFileSync } = await import("node:fs");
           writeFileSync(join(worktreePath, "TASK_CONTRACT.md"), task.taskPromptMarkdown(contract), "utf-8");
           prompt = "Read the file TASK_CONTRACT.md in this working directory and complete the task it describes. Work entirely inside this directory.";
           validationCommands = contract.validation_commands;
-          process.stdout.write(`  real dispatch: ${candidate.repoFullName}#${candidate.number} -> ${worktreePath} (${branch})\n`);
+          process.stdout.write(`  real dispatch: ${candidate.repoFullName}#${candidate.number} -> ${worktreePath} (${branch}, base ${baseBranch})\n`);
         } else {
           branch = `feat/issue-${candidate.number}-${candidate.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 40)}`;
           worktreePath = join(dataDir, "worktrees", candidate.repoFullName.split("/")[1] ?? "repo", `issue-${candidate.number}`);

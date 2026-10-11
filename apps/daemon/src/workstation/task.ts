@@ -8,6 +8,71 @@ import { createProvider, resolveApiKey, type SecretStore } from "@jarvis/provide
 
 const execFileAsync = promisify(execFile);
 
+export interface GitHubCliStatus {
+  available: boolean;
+  loggedIn: string | null;
+  version: string | null;
+  detail: string;
+}
+
+export async function checkGitHubCli(): Promise<GitHubCliStatus> {
+  try {
+    const version = await execFileAsync("gh", ["--version"], { timeout: 10_000 });
+    const firstLine = version.stdout.split(/\r?\n/)[0] ?? "gh";
+    try {
+      const auth = await execFileAsync("gh", ["auth", "status"], { timeout: 10_000 });
+      const login = /account ([\w-]+)/.exec(auth.stdout)?.[1] ?? null;
+      return { available: true, loggedIn: login, version: firstLine, detail: `${firstLine} (logged in: ${login ?? "unknown"})` };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "auth check failed";
+      return { available: true, loggedIn: null, version: firstLine, detail: `${firstLine} - installed but NOT logged in (${msg.split("\n")[0]}): run 'gh auth login'; PRs fall back to the compare-URL handoff` };
+    }
+  } catch {
+    return { available: false, loggedIn: null, version: null, detail: "gh CLI not found - install it (https://cli.github.com) for automated fork+PR; PRs fall back to the compare-URL handoff" };
+  }
+}
+
+export async function forkRepository(repository: string): Promise<{ ok: boolean; detail: string }> {
+  try {
+    const res = await execFileAsync("gh", ["repo", "fork", repository, "--clone=false"], { timeout: 120_000 });
+    const line = (res.stdout + res.stderr).split(/\r?\n/).find((l) => l.trim().length > 0) ?? "fork ready";
+    return { ok: true, detail: line.trim().slice(0, 200) };
+  } catch (err) {
+    return { ok: false, detail: err instanceof Error ? err.message.slice(0, 200) : "fork failed" };
+  }
+}
+
+export async function defaultBranchOf(repository: string): Promise<string> {
+  try {
+    const res = await execFileAsync("gh", ["api", `repos/${repository}`, "--jq", "default_branch"], { timeout: 30_000 });
+    const branch = res.stdout.trim();
+    if (branch.length > 0) return branch;
+  } catch {
+    // fall through to the safest default
+  }
+  return "main";
+}
+
+export async function createPullRequestViaCli(input: {
+  upstream: string;
+  head: string;
+  base: string;
+  title: string;
+  body: string;
+}): Promise<{ ok: boolean; url?: string; detail: string }> {
+  try {
+    const res = await execFileAsync(
+      "gh",
+      ["pr", "create", "--repo", input.upstream, "--head", input.head, "--base", input.base, "--title", input.title, "--body", input.body],
+      { timeout: 120_000 },
+    );
+    const url = res.stdout.trim().split(/\r?\n/).find((l) => l.startsWith("https://github.com/"));
+    return { ok: true, url, detail: url ?? "pr created" };
+  } catch (err) {
+    return { ok: false, detail: err instanceof Error ? err.message.slice(0, 300) : "pr create failed" };
+  }
+}
+
 export function repoSlugFor(repoFullName: string): string {
   return repoFullName.split("/")[1] ?? repoFullName.replace(/[^A-Za-z0-9._-]/g, "_");
 }
