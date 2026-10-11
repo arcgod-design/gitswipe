@@ -52,6 +52,7 @@ export interface ProductionSessionManager {
   createSession(candidateKey: string): Promise<{ sessionId: string; state: string }>;
   getSession(id: string): { currentState(): string; pendingApproval(): unknown; decide(approve: boolean): Promise<{ ok: boolean; reason?: string }> } | null;
   decide(id: string, approve: boolean): Promise<{ ok: boolean; reason?: string }>;
+  listSessions(): Array<{ sessionId: string; repository: string; branch: string; title: string; state: string; pendingApproval: boolean; createdAt: string }>;
 }
 
 export function startWorkstationServer(deps: {
@@ -417,6 +418,11 @@ export function startWorkstationServer(deps: {
         } catch (err) {
           respond(500, { error: err instanceof Error ? err.message : "session creation failed" });
         }
+        return;
+      }
+
+      if (req.method === "GET" && url.pathname === "/api/session/list") {
+        respond(200, { sessions: sessionManager.listSessions() });
         return;
       }
 

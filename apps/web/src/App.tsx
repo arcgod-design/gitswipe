@@ -5,6 +5,7 @@ import {
   Gear,
   House,
   Play,
+  Robot,
   ShieldWarning,
   XCircle,
 } from "@phosphor-icons/react";
@@ -154,9 +155,21 @@ function openStream(
 type Screen =
   | { name: "pair" }
   | { name: "feed" }
+  | { name: "sessions" }
+  | { name: "approvals" }
   | { name: "contract"; key: string }
   | { name: "session"; sessionId: string }
   | { name: "settings" };
+
+interface SessionListItem {
+  sessionId: string;
+  repository: string;
+  branch: string;
+  title: string;
+  state: string;
+  pendingApproval: boolean;
+  createdAt: string;
+}
 
 function reasonText(r: FeedReason): string {
   switch (r.type) {
@@ -272,21 +285,25 @@ function FeedScreen({ onWork }: { onWork: (key: string) => void }): React.ReactN
   const swipe = useCallback(
     async (direction: "left" | "right"): Promise<void> => {
       if (top === undefined || leaving !== null) return;
+      const target = top;
       setLeavingDir(direction);
-      setLeaving(top);
+      setLeaving(target);
       try {
         const page = await call<FeedPage>("/api/swipe", {
           method: "POST",
-          body: JSON.stringify({ key: top.key, action: direction === "right" ? "right" : "left" }),
+          body: JSON.stringify({ key: target.key, action: direction === "right" ? "right" : "left" }),
         });
         setFeed(page);
       } catch {
         void loadFeed();
       } finally {
-        setTimeout(() => setLeaving(null), 300);
+        setTimeout(() => {
+          setLeaving(null);
+          if (direction === "right") onWork(target.key);
+        }, 280);
       }
     },
-    [top, leaving, loadFeed],
+    [top, leaving, loadFeed, onWork],
   );
 
   const cardRef = useRef<HTMLElement | null>(null);
@@ -515,6 +532,70 @@ function ContractScreen({ candidateKey, onDispatch, onBack }: { candidateKey: st
           </div>
         </>
       ) : null}
+    </section>
+  );
+}
+
+function SessionsScreen({ onOpen, onBack, pendingOnly = false }: { onOpen: (sessionId: string) => void; onBack: () => void; pendingOnly?: boolean }): React.ReactNode {
+  const [sessions, setSessions] = useState<SessionListItem[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback((): void => {
+    void call<{ sessions: SessionListItem[] }>("/api/session/list")
+      .then((r) => setSessions(pendingOnly ? r.sessions.filter((s) => s.pendingApproval) : r.sessions))
+      .catch((err) => setError(err instanceof Error ? err.message : "could not load sessions"));
+  }, [pendingOnly]);
+
+  useEffect(() => {
+    load();
+    const t = setInterval(load, 4_000);
+    return () => clearInterval(t);
+  }, [load]);
+
+  const stateChip = (s: SessionListItem): React.ReactNode => {
+    if (s.pendingApproval) return <span className="chip chip-warn">NEEDS APPROVAL</span>;
+    if (s.state === "COMPLETED") return <span className="chip chip-live">completed</span>;
+    if (s.state === "FAILED") return <span className="chip" style={{ color: "var(--danger)", borderColor: "rgba(228,105,79,0.5)" }}>failed</span>;
+    if (s.state === "RUNNING") return <span className="chip">running</span>;
+    return <span className="chip">{s.state.toLowerCase()}</span>;
+  };
+
+  return (
+    <section>
+      <div className="contract-head">
+        <button type="button" className="btn btn-ghost" onClick={onBack}>
+          <ArrowLeft size={16} /> Back to feed
+        </button>
+        <h2 className="screen-title">Agents</h2>
+      </div>
+      {error !== null ? <div className="error-state" style={{ marginTop: 16 }}>{error}</div> : null}
+      {sessions === null && error === null ? <div className="loading-skeleton" aria-label="loading" /> : null}
+      {sessions !== null && sessions.length === 0 ? (
+        <div className="card" style={{ padding: 24, marginTop: 18 }}>
+          <div className="contract-section">
+            <h3>{pendingOnly ? "No approvals waiting" : "No agent sessions yet"}</h3>
+            <p className="hint">{pendingOnly ? "When an agent finishes and wants to push, the exact action lands here for your decision." : "Swipe right on a card in the feed and tap Work on this - the session lands here, live."}</p>
+          </div>
+        </div>
+      ) : null}
+      {sessions !== null && sessions.length > 0
+        ? sessions.map((s) => (
+            <button
+              key={s.sessionId}
+              type="button"
+              className="card session-item"
+              style={{ padding: 18, marginTop: 14, textAlign: "left", width: "100%" }}
+              onClick={() => onOpen(s.sessionId)}
+            >
+              <div className="chip-row">
+                {stateChip(s)}
+                <span className="chip">{s.repository}</span>
+              </div>
+              <div className="session-title">{s.title}</div>
+              <div className="session-meta">{s.branch} - {new Date(s.createdAt).toLocaleTimeString([], { hour12: false })}</div>
+            </button>
+          ))
+        : null}
     </section>
   );
 }
@@ -1004,6 +1085,19 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>({ name: "pair" });
   const [paired, setPaired] = useState(token.read() !== null);
   const [workError, setWorkError] = useState<string | null>(null);
+  const [pendingApprovals, setPendingApprovals] = useState(0);
+
+  useEffect(() => {
+    if (!paired) return;
+    const check = (): void => {
+      void call<{ sessions: Array<{ pendingApproval: boolean }> }>("/api/session/list")
+        .then((r) => setPendingApprovals(r.sessions.filter((s) => s.pendingApproval).length))
+        .catch(() => undefined);
+    };
+    check();
+    const t = setInterval(check, 8_000);
+    return () => clearInterval(t);
+  }, [paired]);
 
   useEffect(() => {
     if (paired) setScreen({ name: "feed" });
@@ -1030,48 +1124,90 @@ export default function App() {
   };
 
   return (
-    <div className="app">
-      <header className="header">
-        <span className="wordmark">
-          Git<span className="swipe">Swipe</span>
-        </span>
-        {paired ? (
-          <>
-            <span className="spacer" />
-            <button type="button" className={`btn btn-ghost btn-nav ${screen.name === "feed" ? "active" : ""}`} onClick={() => setScreen({ name: "feed" })}>
-              <House size={16} /> Feed
-            </button>
-            <button type="button" className={`btn btn-ghost btn-nav ${screen.name === "settings" ? "active" : ""}`} onClick={() => setScreen({ name: "settings" })}>
-              <Gear size={16} /> Workstation
-            </button>
-          </>
-        ) : null}
-      </header>
+    <div className={`app ${paired ? "app-shell" : ""}`}>
       {!paired || screen.name === "pair" ? (
         <PairScreen onPaired={onPaired} />
       ) : null}
-      {paired && screen.name === "feed" ? (
+      {paired ? (
         <>
-          {workError !== null ? (
-            <div className="error-state" style={{ marginTop: 16 }}>
-              {workError}
-              <button type="button" className="btn btn-quiet" style={{ marginLeft: 12 }} onClick={() => setWorkError(null)}>dismiss</button>
-            </div>
-          ) : null}
-          <FeedScreen onWork={onWork} />
+          <aside className="sidebar">
+            <span className="wordmark side-wordmark">
+              Git<span className="swipe">Swipe</span>
+            </span>
+            <nav className="side-nav">
+              <button type="button" className={`side-item ${screen.name === "feed" ? "active" : ""}`} onClick={() => setScreen({ name: "feed" })}>
+                <House size={18} /> Discover
+              </button>
+              <button type="button" className={`side-item ${screen.name === "sessions" || screen.name === "approvals" ? "active" : ""}`} onClick={() => setScreen({ name: "sessions" })}>
+                <Robot size={18} /> Agents
+                {pendingApprovals > 0 ? <span className="nav-badge">{pendingApprovals}</span> : null}
+              </button>
+              <button type="button" className={`side-item ${screen.name === "approvals" ? "active" : ""}`} onClick={() => setScreen({ name: "approvals" })}>
+                <CheckCircle size={18} /> Approvals
+                {pendingApprovals > 0 ? <span className="nav-badge">{pendingApprovals}</span> : null}
+              </button>
+              <span className="side-sep" />
+              <button type="button" className="side-item soon" disabled>Work <span className="soon-tag">soon</span></button>
+              <button type="button" className="side-item soon" disabled>Projects <span className="soon-tag">soon</span></button>
+              <button type="button" className="side-item soon" disabled>References <span className="soon-tag">soon</span></button>
+              <button type="button" className="side-item soon" disabled>Activity <span className="soon-tag">soon</span></button>
+              <span className="side-sep" />
+              <button type="button" className={`side-item ${screen.name === "settings" ? "active" : ""}`} onClick={() => setScreen({ name: "settings" })}>
+                <Gear size={18} /> Workstation
+              </button>
+            </nav>
+          </aside>
+          <main className="main-pane">
+            {screen.name === "feed" ? (
+              <>
+                {workError !== null ? (
+                  <div className="error-state" style={{ marginTop: 16 }}>
+                    {workError}
+                    <button type="button" className="btn btn-quiet" style={{ marginLeft: 12 }} onClick={() => setWorkError(null)}>dismiss</button>
+                  </div>
+                ) : null}
+                <FeedScreen onWork={onWork} />
+              </>
+            ) : null}
+            {screen.name === "contract" ? (
+              <ContractScreen
+                candidateKey={screen.key}
+                onDispatch={onDispatch}
+                onBack={() => setScreen({ name: "feed" })}
+              />
+            ) : null}
+            {screen.name === "sessions" ? (
+              <SessionsScreen
+                onOpen={(sessionId) => setScreen({ name: "session", sessionId })}
+                onBack={() => setScreen({ name: "feed" })}
+              />
+            ) : null}
+            {screen.name === "approvals" ? (
+              <SessionsScreen
+                pendingOnly
+                onOpen={(sessionId) => setScreen({ name: "session", sessionId })}
+                onBack={() => setScreen({ name: "feed" })}
+              />
+            ) : null}
+            {screen.name === "session" ? (
+              <SessionScreen sessionId={screen.sessionId} onBack={() => setScreen({ name: "feed" })} />
+            ) : null}
+            {screen.name === "settings" ? <SettingsScreen /> : null}
+          </main>
+          <nav className="tabbar">
+            <button type="button" className={`tab-item ${screen.name === "feed" ? "active" : ""}`} onClick={() => setScreen({ name: "feed" })}>
+              <House size={20} /> Feed
+            </button>
+            <button type="button" className={`tab-item ${screen.name === "sessions" || screen.name === "approvals" ? "active" : ""}`} onClick={() => setScreen({ name: "sessions" })}>
+              <Robot size={20} /> Agents
+              {pendingApprovals > 0 ? <span className="nav-badge">{pendingApprovals}</span> : null}
+            </button>
+            <button type="button" className={`tab-item ${screen.name === "settings" ? "active" : ""}`} onClick={() => setScreen({ name: "settings" })}>
+              <Gear size={20} /> Workstation
+            </button>
+          </nav>
         </>
       ) : null}
-      {paired && screen.name === "contract" ? (
-        <ContractScreen
-          candidateKey={screen.key}
-          onDispatch={onDispatch}
-          onBack={() => setScreen({ name: "feed" })}
-        />
-      ) : null}
-      {paired && screen.name === "session" ? (
-        <SessionScreen sessionId={screen.sessionId} onBack={() => setScreen({ name: "feed" })} />
-      ) : null}
-      {paired && screen.name === "settings" ? <SettingsScreen /> : null}
     </div>
   );
 }

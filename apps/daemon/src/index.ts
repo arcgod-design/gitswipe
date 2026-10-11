@@ -468,6 +468,7 @@ async function buildProductionSessions(dataDir: string, journal: import("./works
     const gateway = new agents.AgentGateway({ adapter, journal, checkpoints });
     type SessionLike = { currentState(): string; pendingApproval(): unknown; decide(approve: boolean): Promise<{ ok: boolean; reason?: string }> };
     const sessions = new Map<string, SessionLike>();
+    const sessionInfo = new Map<string, { repository: string; branch: string; title: string; createdAt: string }>();
     const notified = new Set<string>();
 
     const watchOutcome = (session: import("@jarvis/agents").GatewaySession, id: string, candidateKey: string): void => {
@@ -531,8 +532,25 @@ async function buildProductionSessions(dataDir: string, journal: import("./works
         });
         const id = session.jarvisSession().jarvis_session_id;
         sessions.set(id, session);
+        sessionInfo.set(id, { repository: candidate.repoFullName, branch, title: candidate.title, createdAt: new Date().toISOString() });
         watchOutcome(session, id, candidateKey);
         return { sessionId: id, state: session.currentState() };
+      },
+      listSessions() {
+        return [...sessions.entries()]
+          .map(([id, session]) => {
+            const info = sessionInfo.get(id);
+            return {
+              sessionId: id,
+              repository: info?.repository ?? "unknown",
+              branch: info?.branch ?? "unknown",
+              title: info?.title ?? "agent session",
+              state: session.currentState(),
+              pendingApproval: session.pendingApproval() !== null,
+              createdAt: info?.createdAt ?? new Date().toISOString(),
+            };
+          })
+          .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
       },
       getSession(id: string) {
         return sessions.get(id) ?? null;
