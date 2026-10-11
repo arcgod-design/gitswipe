@@ -470,6 +470,54 @@ async function buildProductionSessions(dataDir: string, journal: import("./works
     const sessions = new Map<string, SessionLike>();
     const sessionInfo = new Map<string, { repository: string; branch: string; title: string; createdAt: string }>();
     const notified = new Set<string>();
+    const { appendFileSync, readFileSync, existsSync: fsExists } = await import("node:fs");
+    const sessionsMetaPath = join(dataDir, "sessions.jsonl");
+
+    const recordSessionMeta = (id: string, info: { repository: string; branch: string; title: string; createdAt: string }): void => {
+      sessionInfo.set(id, info);
+      try {
+        appendFileSync(sessionsMetaPath, `${JSON.stringify({ sessionId: id, ...info })}\n`, "utf-8");
+      } catch {
+        // the live map still works even if the durable append fails
+      }
+    };
+
+    const readSessionsMeta = (): Map<string, { repository: string; branch: string; title: string; createdAt: string }> => {
+      const out = new Map<string, { repository: string; branch: string; title: string; createdAt: string }>();
+      if (!fsExists(sessionsMetaPath)) return out;
+      for (const line of readFileSync(sessionsMetaPath, "utf-8").split(/\r?\n/)) {
+        if (line.trim().length === 0) continue;
+        try {
+          const rec = JSON.parse(line) as { sessionId?: string; repository?: string; branch?: string; title?: string; createdAt?: string };
+          if (typeof rec.sessionId === "string") {
+            out.set(rec.sessionId, {
+              repository: rec.repository ?? "unknown",
+              branch: rec.branch ?? "",
+              title: rec.title ?? "agent session",
+              createdAt: rec.createdAt ?? new Date().toISOString(),
+            });
+          }
+        } catch {
+          // skip malformed lines
+        }
+      }
+      return out;
+    };
+
+    const stateFromJournal = (id: string): { state: string; pending: boolean } => {
+      let state = "RUNNING";
+      let pending = false;
+      for (const envelope of journal.readFrom(0)) {
+        if (envelope.session_id !== id) continue;
+        const type = envelope.type as string;
+        if (type === "AgentCompleted") { state = "COMPLETED"; pending = false; }
+        else if (type === "AgentFailed") { state = "FAILED"; pending = false; }
+        else if (type === "ApprovalRequested") { state = "WAITING_FOR_APPROVAL"; pending = true; }
+        else if (type === "ApprovalGranted" || type === "ApprovalDenied") { state = "RUNNING"; pending = false; }
+        else if (type === "AgentCancelled") { state = "CANCELLED"; pending = false; }
+      }
+      return { state, pending };
+    };
 
     const watchOutcome = (session: import("@jarvis/agents").GatewaySession, id: string, candidateKey: string): void => {
       session.subscribe(() => {
@@ -532,25 +580,31 @@ async function buildProductionSessions(dataDir: string, journal: import("./works
         });
         const id = session.jarvisSession().jarvis_session_id;
         sessions.set(id, session);
-        sessionInfo.set(id, { repository: candidate.repoFullName, branch, title: candidate.title, createdAt: new Date().toISOString() });
+        recordSessionMeta(id, { repository: candidate.repoFullName, branch, title: candidate.title, createdAt: new Date().toISOString() });
         watchOutcome(session, id, candidateKey);
         return { sessionId: id, state: session.currentState() };
       },
       listSessions() {
-        return [...sessions.entries()]
-          .map(([id, session]) => {
-            const info = sessionInfo.get(id);
-            return {
+        const all = readSessionsMeta();
+        const out: Array<{ sessionId: string; repository: string; branch: string; title: string; state: string; pendingApproval: boolean; createdAt: string }> = [];
+        for (const [id, info] of all) {
+          const live = sessions.get(id);
+          if (live !== undefined) {
+            out.push({
               sessionId: id,
-              repository: info?.repository ?? "unknown",
-              branch: info?.branch ?? "unknown",
-              title: info?.title ?? "agent session",
-              state: session.currentState(),
-              pendingApproval: session.pendingApproval() !== null,
-              createdAt: info?.createdAt ?? new Date().toISOString(),
-            };
-          })
-          .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+              repository: info.repository,
+              branch: info.branch,
+              title: info.title,
+              state: live.currentState(),
+              pendingApproval: live.pendingApproval() !== null,
+              createdAt: info.createdAt,
+            });
+          } else {
+            const { state, pending } = stateFromJournal(id);
+            out.push({ sessionId: id, repository: info.repository, branch: info.branch, title: info.title, state, pendingApproval: pending, createdAt: info.createdAt });
+          }
+        }
+        return out.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
       },
       getSession(id: string) {
         return sessions.get(id) ?? null;

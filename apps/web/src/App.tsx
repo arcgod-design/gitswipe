@@ -445,6 +445,7 @@ function FeedScreen({ onWork }: { onWork: (key: string) => void }): React.ReactN
 
 function stateClass(state: string): string {
   if (state === "COMPLETED") return "s-terminal";
+  if (state === "FAILED") return "s-failed";
   if (state === "PAUSED") return "s-paused";
   if (state === "WAITING_FOR_APPROVAL") return "s-waiting";
   if (state === "RUNNING" || state === "TESTING") return "s-running";
@@ -608,7 +609,8 @@ function SessionScreen({ sessionId, onBack }: { sessionId: string; onBack: () =>
   useEffect(() => {
     const push = (e: SessionEvent): void => {
       setEvents((prev) => [...prev, e]);
-      if (e.type === "AgentCompleted" || e.type === "AgentFailed") setState("COMPLETED");
+      if (e.type === "AgentCompleted") setState("COMPLETED");
+      else if (e.type === "AgentFailed") setState("FAILED");
       else if (e.type === "ApprovalRequested") setState("WAITING_FOR_APPROVAL");
       else if (e.type === "ApprovalDenied") setState("PAUSED");
       else if (e.type === "ApprovalGranted" || e.type === "AgentStarted") setState("RUNNING");
@@ -625,7 +627,9 @@ function SessionScreen({ sessionId, onBack }: { sessionId: string; onBack: () =>
   }, [sessionId]);
 
   const waiting = state === "WAITING_FOR_APPROVAL";
-  const completed = events.some((e) => e.type === "AgentCompleted");
+  const completed = state === "COMPLETED";
+  const failedEvent = events.filter((e) => e.type === "AgentFailed").at(-1);
+  const failed = state === "FAILED";
 
   const decide = (approve: boolean): void => {
     void call(`/api/session/${sessionId}/approve`, {
@@ -671,6 +675,17 @@ function SessionScreen({ sessionId, onBack }: { sessionId: string; onBack: () =>
           <div className="reason pos" style={{ fontWeight: 600, color: "var(--text)" }}>
             <CheckCircle size={18} weight="fill" style={{ color: "var(--accent)" }} /> Session complete.
           </div>
+        </div>
+      ) : null}
+
+      {failed ? (
+        <div className="approval" style={{ borderColor: "rgba(228,105,79,0.45)", background: "rgba(228,105,79,0.07)" }}>
+          <div className="reason pos" style={{ fontWeight: 600, color: "var(--text)" }}>
+            <XCircle size={18} weight="fill" style={{ color: "var(--danger)" }} /> The session failed.
+          </div>
+          {failedEvent !== undefined && typeof failedEvent.payload.reason === "string" ? (
+            <p className="hint" style={{ marginTop: 8 }}>{failedEvent.payload.reason}</p>
+          ) : null}
         </div>
       ) : null}
 

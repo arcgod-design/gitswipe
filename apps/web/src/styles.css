@@ -968,3 +968,8 @@ h2.screen-title {
     display: none;
   }
 }
+.s-failed {
+  background: rgba(228, 105, 79, 0.16);
+  border-color: rgba(228, 105, 79, 0.5);
+  color: var(--danger);
+}
