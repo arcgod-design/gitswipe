@@ -1,0 +1,14 @@
+{
+  "date": "2026-10-09 (session 27, late night)",
+  "milestone": "REAL PR on expressjs/express #7520 - the full contract loop landed on a major OSS repo",
+  "shipped": [
+    "gh CLI as first-class harness capability (check, fork, default-branch, automated PR + fallbacks)",
+    "journal-backed session history (survives restarts) + honest FAILED states",
+    "adapter hardening (silence watchdog, rotation, tree-kill) from the first real failures",
+    "fork-pr flow proven: fine-grained PAT forks+pushes; gh creates the PR"
+  ],
+  "lessons": ["fine-grained PATs cannot create cross-repo PRs", "express default branch is master - never hardcode a base", "gh CLI carries its own auth that bypasses the PAT limitation"],
+  "verified": ["191/191 tests", "typecheck clean", "PR https://github.com/expressjs/express/pull/7520", "session survived a serve restart"],
+  "commits": ["2b3c7ec", "bdcfafa", "c86959b"],
+  "next_step": "complete the remaining weeks: WEEK-09 remainder (notifications/offline), WEEK-10 (the pipe-buffering file-redirect fix first), then 11/12, then 13/14"
+}
