@@ -274,3 +274,11 @@ All three are Discover-only surfaces (notifications or starring). NONE executes 
 ## Evaluation queue / template for future entries
 
 Use the structure above: identity block (repo/stars/license/activity) → what it actually is → quality signals (honest) → brutal verdict (taken / refused / post-v1 doors) → scorecard. Research via `gh repo view` + README + tree (the backend agent-reach routes to for GitHub); record the date; never let a research doc change a locked decision — that needs an ADR.
+
+## New repo evaluations (2026-10-10)
+
+| Repo | Category | Stars | License | Verdict | Reason |
+|---|---|---|---|---|---|
+| sodiumsun/agenttrail | Agent execution tracing + observability | small | MIT | 🚫 SKIP | different domain (tracing UI for existing agent runs); we already have the event journal + the Activity screen; no dependency, no pattern we don't already have |
+| OrchestratorInc/agent-orchestrator | Multi-agent orchestration framework | small | MIT | ⚠️ PATTERN REFERENCE for WEEK-14 v1.1 | the orchestration/multi-agent direction the user locked; we already have our own sequential queue + routing; study their orchestration patterns for the v1.1 semantic handlers |
+| OpenBMB/ChatDev | Multi-agent software dev company (agents as roles) | large | Apache-2.0 | 🚫 SKIP | a complete multi-agent software company (CEO/CTO/Programmer roles); GitSwipe is a control plane that dispatches to ONE coding agent behind OUR gateway; adopting ChatDev would mean becoming a multi-agent framework (contract s178.20 forbids this); the role-decomposition pattern is interesting but not our shape |

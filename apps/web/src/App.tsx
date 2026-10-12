@@ -740,7 +740,7 @@ function ReferencesScreen({ onBack }: { onBack: () => void }): React.ReactNode {
   );
 }
 
-function WorkScreen({ onOpenSession, onBack }: { onOpenSession: (sessionId: string) => void; onBack: () => void }): React.ReactNode {
+function WorkScreen({ onOpenSession, onWork, onBack }: { onOpenSession: (sessionId: string) => void; onWork: (key: string) => void; onBack: () => void }): React.ReactNode {
   const [work, setWork] = useState<WorkItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -761,7 +761,7 @@ function WorkScreen({ onOpenSession, onBack }: { onOpenSession: (sessionId: stri
     if (s === "FAILED") return <span className="chip" style={{ color: "var(--danger)" }}>failed</span>;
     if (s === "RUNNING") return <span className="chip">running</span>;
     if (s === "WAITING_FOR_APPROVAL") return <span className="chip chip-warn">needs approval</span>;
-    return <span className="chip">saved</span>;
+    return <span className="chip chip-warn">saved - tap to dispatch</span>;
   };
 
   return (
@@ -788,7 +788,13 @@ function WorkScreen({ onOpenSession, onBack }: { onOpenSession: (sessionId: stri
               type="button"
               className="card session-item"
               style={{ padding: 18, marginTop: 14, textAlign: "left", width: "100%" }}
-              onClick={() => w.sessionId !== null ? onOpenSession(w.sessionId) : undefined}
+              onClick={() => {
+                if (w.sessionId !== null && w.state !== "SAVED") {
+                  onOpenSession(w.sessionId);
+                } else if (w.state === "SAVED") {
+                  onWork(w.key);
+                }
+              }}
             >
               <div className="chip-row">
                 {stateChip(w.state)}
@@ -796,7 +802,10 @@ function WorkScreen({ onOpenSession, onBack }: { onOpenSession: (sessionId: stri
                 {w.language !== null ? <span className="chip">{w.language}</span> : null}
               </div>
               <div className="session-title">{w.title}</div>
-              <div className="session-meta">#{w.number}{w.state !== "SAVED" && w.sessionId !== null ? ` - tap to open the session` : ""}</div>
+              <div className="session-meta">
+                #{w.number}
+                {w.state === "SAVED" ? " - tap to build the task contract and dispatch" : " - tap to open the session"}
+              </div>
             </button>
           ))
         : null}
@@ -1594,6 +1603,7 @@ export default function App() {
             {screen.name === "work" ? (
               <WorkScreen
                 onOpenSession={(sessionId) => setScreen({ name: "session", sessionId })}
+                onWork={onWork}
                 onBack={() => setScreen({ name: "feed" })}
               />
             ) : null}

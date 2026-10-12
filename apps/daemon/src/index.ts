@@ -335,9 +335,28 @@ async function buildProductionFeed(dataDir: string, secretStore?: import("@jarvi
     const JsonlSwipeStore = discovery.JsonlSwipeStore;
     const { join } = await import("node:path");
     const { loadSettings } = await import("./workstation/settings.js");
+    const { discoverUserRepos, discoverFromLanguages } = await import("./workstation/task.js");
 
     const swipeStore = new JsonlSwipeStore(join(dataDir, "swipes.jsonl"));
-    const loaded = await loadRealCandidates(buildCandidate, loadSettings(dataDir).feedRepos, secretStore);
+    const settings = loadSettings(dataDir);
+
+    let repos = settings.feedRepos ?? [];
+    if (repos.length === 0 && secretStore !== undefined) {
+      process.stdout.write("  feed: no feedRepos configured - discovering from your GitHub...\n");
+      const userRepos = await discoverUserRepos(secretStore, { maxRepos: 6 });
+      if (userRepos.length > 0) {
+        repos = userRepos;
+        process.stdout.write(`  feed: found ${userRepos.length} of your repos with open issues\n`);
+      } else {
+        const langRepos = await discoverFromLanguages(secretStore, ["TypeScript", "JavaScript", "Python"]);
+        if (langRepos.length > 0) {
+          repos = langRepos;
+          process.stdout.write(`  feed: discovered ${langRepos.length} repos matching common languages\n`);
+        }
+      }
+    }
+
+    const loaded = await loadRealCandidates(buildCandidate, repos.length > 0 ? repos : undefined, secretStore);
     const candidates = loaded.candidates;
     const candidateByKey = new Map(candidates.map((c) => [c.key, c]));
     process.stdout.write(`  feed: ${loaded.source} (${candidates.length} candidates)\n`);

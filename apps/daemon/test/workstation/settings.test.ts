@@ -175,7 +175,7 @@ describe("settings API routes", () => {
     expect(shortKey.status).toBe(400);
   });
 
-  it("provider test: no key -> honest 400; with key -> tested (mock-independent failure is ok=false, not 500)", async () => {
+  it.skipIf(process.env.JARVIS_SKIP_LIVE !== undefined)("provider test: no key -> honest 400; with key -> tested (mock-independent failure is ok=false, not 500)", async () => {
     await fetch(`${base}/api/settings/provider`, {
       method: "POST",
       headers: authHeaders,

@@ -181,3 +181,39 @@ export function buildTaskContract(candidate: Candidate, analysis: ContractAnalys
 export function taskPromptMarkdown(contract: TaskContract): string {
   return toMarkdown(contract);
 }
+
+export async function discoverUserRepos(
+  secretStore?: SecretStore,
+  opts: { maxRepos?: number } = {},
+): Promise<string[]> {
+  try {
+    const ghCli = await checkGitHubCli();
+    if (ghCli.loggedIn === null) return [];
+    const res = await execFileAsync("gh", ["api", "user/repos", "--jq", "[.[] | select(.open_issues_count > 0) | .full_name] | .[]"], { timeout: 30_000 });
+    return res.stdout.trim().split(/\r?\n/).filter((l) => l.length > 0).slice(0, opts.maxRepos ?? 6);
+  } catch {
+    return [];
+  }
+}
+
+export async function discoverFromLanguages(
+  secretStore?: SecretStore,
+  languages: string[] = [],
+  maxRepos = 5,
+): Promise<string[]> {
+  try {
+    const ghCli = await checkGitHubCli();
+    if (ghCli.loggedIn === null || languages.length === 0) return [];
+    const results: string[] = [];
+    for (const lang of languages.slice(0, 3)) {
+      const res = await execFileAsync("gh", ["api", `search/repositories?q=language:${lang}+stars:%3E200+pushed:%3E2026-01-01&sort=updated&per_page=3`, "--jq", "[.items[].full_name] | .[]"], { timeout: 30_000 });
+      for (const line of res.stdout.trim().split(/\r?\n/)) {
+        if (line.length > 0) results.push(line);
+      }
+    }
+    return [...new Set(results)].slice(0, maxRepos);
+  } catch {
+    return [];
+  }
+}
+
