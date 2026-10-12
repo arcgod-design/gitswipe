@@ -159,6 +159,7 @@ type Screen =
   | { name: "sessions" }
   | { name: "approvals" }
   | { name: "activity" }
+  | { name: "work" }
   | { name: "contract"; key: string }
   | { name: "session"; sessionId: string }
   | { name: "settings" };
@@ -596,6 +597,80 @@ function SessionsScreen({ onOpen, onBack, pendingOnly = false }: { onOpen: (sess
               </div>
               <div className="session-title">{s.title}</div>
               <div className="session-meta">{s.branch} - {new Date(s.createdAt).toLocaleTimeString([], { hour12: false })}</div>
+            </button>
+          ))
+        : null}
+    </section>
+  );
+}
+
+interface WorkItem {
+  key: string;
+  repo: string;
+  number: number;
+  title: string;
+  language: string | null;
+  state: string;
+  sessionId: string | null;
+}
+
+function WorkScreen({ onOpenSession, onBack }: { onOpenSession: (sessionId: string) => void; onBack: () => void }): React.ReactNode {
+  const [work, setWork] = useState<WorkItem[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback((): void => {
+    void call<{ work: WorkItem[] }>("/api/work")
+      .then((r) => setWork(r.work))
+      .catch((err) => setError(err instanceof Error ? err.message : "failed"));
+  }, []);
+
+  useEffect(() => {
+    load();
+    const t = setInterval(load, 10_000);
+    return () => clearInterval(t);
+  }, [load]);
+
+  const stateChip = (s: string): React.ReactNode => {
+    if (s === "COMPLETED") return <span className="chip chip-live">completed</span>;
+    if (s === "FAILED") return <span className="chip" style={{ color: "var(--danger)" }}>failed</span>;
+    if (s === "RUNNING") return <span className="chip">running</span>;
+    if (s === "WAITING_FOR_APPROVAL") return <span className="chip chip-warn">needs approval</span>;
+    return <span className="chip">saved</span>;
+  };
+
+  return (
+    <section>
+      <div className="contract-head">
+        <button type="button" className="btn btn-ghost" onClick={onBack}>
+          <ArrowLeft size={16} /> Back to feed
+        </button>
+        <h2 className="screen-title">Work</h2>
+      </div>
+      {error !== null ? <div className="error-state" style={{ marginTop: 16 }}>{error}</div> : null}
+      {work !== null && work.length === 0 ? (
+        <div className="card" style={{ padding: 24, marginTop: 18 }}>
+          <div className="contract-section">
+            <h3>No saved work yet</h3>
+            <p className="hint">Swipe right on a card - it lands here as saved, then moves through running / approval / completed as the agent works.</p>
+          </div>
+        </div>
+      ) : null}
+      {work !== null && work.length > 0
+        ? work.map((w) => (
+            <button
+              key={w.key}
+              type="button"
+              className="card session-item"
+              style={{ padding: 18, marginTop: 14, textAlign: "left", width: "100%" }}
+              onClick={() => w.sessionId !== null ? onOpenSession(w.sessionId) : undefined}
+            >
+              <div className="chip-row">
+                {stateChip(w.state)}
+                <span className="chip">{w.repo}</span>
+                {w.language !== null ? <span className="chip">{w.language}</span> : null}
+              </div>
+              <div className="session-title">{w.title}</div>
+              <div className="session-meta">#{w.number}{w.state !== "SAVED" && w.sessionId !== null ? ` - tap to open the session` : ""}</div>
             </button>
           ))
         : null}
@@ -1243,7 +1318,9 @@ export default function App() {
                 {pendingApprovals > 0 ? <span className="nav-badge">{pendingApprovals}</span> : null}
               </button>
               <span className="side-sep" />
-              <button type="button" className="side-item soon" disabled>Work <span className="soon-tag">soon</span></button>
+              <button type="button" className={`side-item ${screen.name === "work" ? "active" : ""}`} onClick={() => setScreen({ name: "work" })}>
+                <Play size={18} /> Work
+              </button>
               <button type="button" className="side-item soon" disabled>Projects <span className="soon-tag">soon</span></button>
               <button type="button" className="side-item soon" disabled>References <span className="soon-tag">soon</span></button>
               <button type="button" className={`side-item ${screen.name === "activity" ? "active" : ""}`} onClick={() => setScreen({ name: "activity" })}>
@@ -1294,6 +1371,12 @@ export default function App() {
             ) : null}
             {screen.name === "activity" ? (
               <ActivityScreen onBack={() => setScreen({ name: "feed" })} />
+            ) : null}
+            {screen.name === "work" ? (
+              <WorkScreen
+                onOpenSession={(sessionId) => setScreen({ name: "session", sessionId })}
+                onBack={() => setScreen({ name: "feed" })}
+              />
             ) : null}
             {screen.name === "session" ? (
               <SessionScreen sessionId={screen.sessionId} onBack={() => setScreen({ name: "feed" })} />

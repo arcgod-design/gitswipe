@@ -421,7 +421,29 @@ export function startWorkstationServer(deps: {
         return;
       }
 
-      if (req.method === "GET" && url.pathname === "/api/session/list") {
+      if (req.method === "GET" && url.pathname === "/api/work") {
+      if (feedEngine === undefined) {
+        respond(503, { error: "feed engine unavailable" });
+        return;
+      }
+      const sessions = sessionManager?.listSessions() ?? [];
+      const work = feedEngine.candidates().map((c) => {
+        const session = sessions.find((s) => s.title === c.title || (s.branch ?? "").includes(`issue-${c.number}`));
+        return {
+          key: c.key,
+          repo: c.repoFullName,
+          number: c.number,
+          title: c.title,
+          language: c.language,
+          state: session?.state ?? "SAVED",
+          sessionId: session?.sessionId ?? null,
+        };
+      });
+      respond(200, { work });
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/session/list") {
         respond(200, { sessions: sessionManager.listSessions() });
         return;
       }
