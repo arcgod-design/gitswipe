@@ -1,0 +1,7 @@
+{
+  "date": "2026-10-10 (session 34, evening)",
+  "whynot_fixed": ["#1 personal feed", "#2 card refill", "#4 zombie recovery", "#11 real skill graph"],
+  "verified": ["190/191 + 1 skipped", "your languages: TypeScript JavaScript HTML Python Jupyter", "5 repos, 12 candidates, 0.8 scores", "1 zombie recovered, queue unblocked"],
+  "remaining_high": ["#5 offline/reconnect", "#10 security in live agent path"],
+  "commits": ["775db24", "9d5a377", "this"]
+}
