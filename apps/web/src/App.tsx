@@ -976,6 +976,14 @@ interface SettingsState {
   agentBackend: string;
   agentModelChain: string[] | null;
   feedRepos: string[] | null;
+  routing: { discoveryRank?: string; repoAnalysis?: string; promptGeneration?: string; securityReview?: string } | null;
+}
+
+interface AdapterInfo {
+  id: string;
+  status: string;
+  displayName: string;
+  models: string;
 }
 
 function SettingsScreen(): React.ReactNode {
@@ -1000,6 +1008,9 @@ function SettingsScreen(): React.ReactNode {
   const [agentMsg, setAgentMsg] = useState<string | null>(null);
   const [reposText, setReposText] = useState("");
   const [reposMsg, setReposMsg] = useState<string | null>(null);
+  const [routing, setRouting] = useState({ discoveryRank: "", repoAnalysis: "", promptGeneration: "", securityReview: "" });
+  const [routingMsg, setRoutingMsg] = useState<string | null>(null);
+  const [adapters, setAdapters] = useState<AdapterInfo[]>([]);
 
   const reload = useCallback(() => {
     void call<Record<string, unknown>>("/api/workstation")
@@ -1016,8 +1027,18 @@ function SettingsScreen(): React.ReactNode {
         setAgentBackend(s.agentBackend);
         setAgentChainText((s.agentModelChain ?? []).join(", "));
         setReposText((s.feedRepos ?? []).join("\n"));
+        const r = s.routing ?? {};
+        setRouting({
+          discoveryRank: r.discoveryRank ?? "",
+          repoAnalysis: r.repoAnalysis ?? "",
+          promptGeneration: r.promptGeneration ?? "",
+          securityReview: r.securityReview ?? "",
+        });
       })
       .catch((err) => setError(err instanceof Error ? err.message : "failed"));
+    void call<{ adapters: AdapterInfo[] }>("/api/adapters")
+      .then((r) => setAdapters(r.adapters))
+      .catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -1312,6 +1333,71 @@ function SettingsScreen(): React.ReactNode {
 
       <div className="card" style={{ padding: 24, marginTop: 18 }}>
         <div className="chip-row">
+          <span className="chip kind">routing</span>
+          <span className="chip">per-task-type models (s7.2)</span>
+        </div>
+        <div className="contract-section">
+          <h3>Model routing</h3>
+          <p className="hint">Each task type gets its own model. Empty = the default provider model above.</p>
+          {([
+            ["discoveryRank", "Discovery quick ranking", "A cheap, fast model for feed ranking"],
+            ["repoAnalysis", "Repository analysis", "The strong model that reads issues and writes contracts"],
+            ["promptGeneration", "Prompt generation", "The model that polishes the agent prompt"],
+            ["securityReview", "Security review", "The model that reviews diffs for risks"],
+          ] as const).map(([key, label, hint]) => (
+            <div className="form-row" key={key}>
+              <label htmlFor={`route-${key}`}>{label}</label>
+              <input
+                id={`route-${key}`}
+                className="form-input"
+                type="text"
+                value={routing[key]}
+                onChange={(e) => setRouting((prev) => ({ ...prev, [key]: e.target.value }))}
+                placeholder={hint}
+                autoComplete="off"
+              />
+            </div>
+          ))}
+          <div className="btn-row">
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={busy !== null}
+              onClick={() => {
+                setBusy("routing");
+                const clean: Record<string, string> = {};
+                for (const [k, v] of Object.entries(routing)) {
+                  if (v.trim().length > 0) clean[k] = v.trim();
+                }
+                void call<{ routing: typeof routing; note: string }>("/api/settings/routing", {
+                  method: "POST",
+                  body: JSON.stringify(clean),
+                })
+                  .then((r) => setRoutingMsg(`saved - ${r.note}`))
+                  .catch((err) => setRoutingMsg(err instanceof Error ? err.message : "save failed"))
+                  .finally(() => setBusy(null));
+              }}
+            >
+              Save routing
+            </button>
+          </div>
+          {routingMsg !== null ? <div className="notice" style={{ marginTop: 10 }}>{routingMsg}</div> : null}
+        </div>
+        <div className="contract-section">
+          <h3>Agent adapters (s17)</h3>
+          <div className="reasons" style={{ marginTop: 8 }}>
+            {adapters.map((a) => (
+              <div key={a.id} className={`reason ${a.status === "live" ? "pos" : ""}`}>
+                <span className="sign">{a.status === "live" ? "+" : "-"}</span>
+                <span>{a.displayName} - {a.status} {a.status === "live" ? `(${a.models})` : "(backlog)"}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="card" style={{ padding: 24, marginTop: 18 }}>
+        <div className="chip-row">
           <span className="chip kind">workspace</span>
           <span className="chip">{workRootDefault ? "default folder" : "custom folder"}</span>
         </div>
@@ -1417,7 +1503,10 @@ export default function App() {
       body: JSON.stringify({ key }),
     })
       .then(({ sessionId }) => setScreen({ name: "session", sessionId }))
-      .catch((err) => setWorkError(err instanceof Error ? err.message : "could not start the session"));
+      .catch((err) => {
+        setWorkError(err instanceof Error ? err.message : "could not start the session");
+        setScreen({ name: "feed" });
+      });
   };
 
   return (

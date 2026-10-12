@@ -483,6 +483,15 @@ async function buildProductionSessions(dataDir: string, journal: import("./works
     const { appendFileSync, readFileSync, existsSync: fsExists } = await import("node:fs");
     const sessionsMetaPath = join(dataDir, "sessions.jsonl");
 
+    const hasActiveSession = (): boolean => {
+      for (const s of sessions.values()) {
+        const st = s.currentState();
+        if (st === "RUNNING" || st === "TESTING" || st === "WAITING_FOR_APPROVAL" || st === "STARTING" || st === "PREFLIGHT") return true;
+      }
+      return false;
+    };
+    const drainQueue = (): void => void 0;
+
     const recordSessionMeta = (id: string, info: { repository: string; branch: string; title: string; createdAt: string }): void => {
       sessionInfo.set(id, info);
       try {
@@ -543,6 +552,9 @@ async function buildProductionSessions(dataDir: string, journal: import("./works
 
     return {
       async createSession(candidateKey: string) {
+        if (hasActiveSession()) {
+          throw new Error("one agent at a time (sequential by design - the API budget lock): the active session must reach a terminal state first");
+        }
         const candidate = candidateByKey.get(candidateKey);
         if (candidate === undefined) {
           throw new Error(`unknown candidate: ${candidateKey}`);

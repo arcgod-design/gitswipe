@@ -242,6 +242,26 @@ export function startWorkstationServer(deps: {
       return;
     }
 
+    if (req.method === "POST" && url.pathname === "/api/settings/routing") {
+      const body = (await readJson(req)) as Record<string, unknown>;
+      const parsed = z
+        .object({
+          discoveryRank: z.string().min(1).optional(),
+          repoAnalysis: z.string().min(1).optional(),
+          promptGeneration: z.string().min(1).optional(),
+          securityReview: z.string().min(1).optional(),
+        })
+        .safeParse(body);
+      if (!parsed.success) {
+        respond(400, { error: "invalid routing payload" });
+        return;
+      }
+      const current = loadSettings(config.dataDir);
+      const routing = { ...(current.routing ?? {}), ...parsed.data };
+      saveSettings(config.dataDir, { routing });
+      respond(200, { routing, note: "the discovery + analysis paths pick it up on the next serve start" });
+      return;
+    }
     if (url.pathname.startsWith("/api/settings")) {
       const PROVIDER_IDS = [...Object.keys(PROVIDER_PRESETS), "anthropic", "generic"];
       const presets = [
@@ -441,6 +461,32 @@ export function startWorkstationServer(deps: {
         };
       });
       respond(200, { work });
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/adapters") {
+      const catalog = [
+        { id: "opencode", status: "live", displayName: "OpenCode (headless)", models: "nvidia chain" },
+        { id: "mock", status: "live", displayName: "Simulated agent (demo timeline)", models: "none" },
+        { id: "harness", status: "future", displayName: "Harness (contract s53)", models: "-" },
+        { id: "claude-code", status: "future", displayName: "Claude Code (s17)", models: "-" },
+        { id: "codex", status: "future", displayName: "Codex (s17)", models: "-" },
+        { id: "patchwork", status: "future", displayName: "Patchwork (gitresearch)", models: "-" },
+        { id: "openhands", status: "future", displayName: "OpenHands (gitresearch)", models: "-" },
+      ];
+      respond(200, { adapters: catalog, note: "the s17 catalog - opencode live, the rest the v1.1+ backlog" });
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/queue") {
+      if (sessionManager === undefined) {
+        respond(200, { queue: [], active: null });
+        return;
+      }
+      const sessions = sessionManager.listSessions();
+      const active = sessions.find((s) => s.state === "RUNNING" || s.state === "WAITING_FOR_APPROVAL" || s.state === "TESTING") ?? null;
+      const queued = sessions.filter((s) => s.state === "QUEUED");
+      respond(200, { active, queued, sequential: true, note: "one agent at a time by design (API budget) - new dispatches queue behind the active one" });
       return;
     }
 

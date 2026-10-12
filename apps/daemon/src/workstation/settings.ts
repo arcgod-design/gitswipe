@@ -9,6 +9,12 @@ export interface WorkstationSettings {
   feedRepos?: string[];
   agentBackend?: "mock" | "opencode";
   agentModelChain?: string[];
+  routing?: {
+    discoveryRank?: string;
+    repoAnalysis?: string;
+    promptGeneration?: string;
+    securityReview?: string;
+  };
 }
 
 export function defaultWorkRoot(dataDir: string): string {
@@ -31,6 +37,14 @@ export function loadSettings(dataDir: string): WorkstationSettings {
       agentBackend: raw.agentBackend === "opencode" ? "opencode" : raw.agentBackend === "mock" ? "mock" : undefined,
       agentModelChain: Array.isArray(raw.agentModelChain)
         ? raw.agentModelChain.filter((m) => typeof m === "string" && m.length > 0)
+        : undefined,
+      routing: typeof raw.routing === "object" && raw.routing !== null
+        ? {
+            discoveryRank: typeof (raw.routing as Record<string, unknown>).discoveryRank === "string" ? (raw.routing as Record<string, string>).discoveryRank : undefined,
+            repoAnalysis: typeof (raw.routing as Record<string, unknown>).repoAnalysis === "string" ? (raw.routing as Record<string, string>).repoAnalysis : undefined,
+            promptGeneration: typeof (raw.routing as Record<string, unknown>).promptGeneration === "string" ? (raw.routing as Record<string, string>).promptGeneration : undefined,
+            securityReview: typeof (raw.routing as Record<string, unknown>).securityReview === "string" ? (raw.routing as Record<string, string>).securityReview : undefined,
+          }
         : undefined,
     };
   } catch {
