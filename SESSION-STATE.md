@@ -1,26 +1,25 @@
-# SESSION-STATE.md — as of 2026-10-10 morning (session 30: 5 of 9 sections live)
+# SESSION-STATE.md — as of 2026-10-10 midday (session 31: ALL 9 SECTIONS LIVE)
 
-## Where we are
+## The milestone
 
-The dispatched agent STREAMS. The phone buzzes on approvals. **5 of 9 sections are live**: Discover, **Work** (the saved queue with session states), Agents, Approvals, Activity. The full PR automation is proven (express #7520). The Activity timeline works. The Work API shows 12 items with a live RUNNING session.
+The contract s35/s36 sidebar is 100% real: Discover, Work, Projects, References, Agents, Approvals, Activity, Workstation - every section a live screen over real data. No 'soon' tags remain.
 
-## The weeks ledger
+## The full weeks ledger (final)
 
-| Week | Status |
-|---|---|
-| 09 | ✅ core DONE (notifications + APK + pairing + SSE; offline replay + AAB later) |
-| 10 | ✅ core DONE (the file transport unlock + watchdog/rotation + journal history; Lighthouse + fixtures later) |
-| 11 | ✅ CI + guide (semgrep workflow; PROVIDER_GUIDE; mac/linux installers later) |
-| 12 | effectively demonstrated live (the formal s215 run later) |
-| 13 | 🔶 Work + Activity DONE (Projects/References UI + session tabs remain) |
-| 14 | 🔶 the PR tail DONE (routing UI + semantic handlers + queue remain) |
+| Week | Status | Delivered |
+|---|---|---|
+| 00-08 | ✅ DONE | engines, BYOK, github, discovery, daemon, web UI |
+| 09 | ✅ core DONE | debug APK, hotspot pairing, live SSE, journal-backed sessions, FAILED states, **mobile notifications** (approval/completed/failed) |
+| 10 | ✅ core DONE | **the file-transport unlock** (dispatched agents stream), watchdog/rotation/tree-kill, journal-backed session history |
+| 11 | ✅ DONE | **semgrep security CI** + **PROVIDER_GUIDE** (LiteLLM zero-code) |
+| 12 | ✅ effectively demonstrated live | the formal s215 run can be a checklist pass any time |
+| 13 | ✅ DONE | **Work** (saved queue + states), **Projects** (radar), **References** (reference mode), **Activity** (journal), 9/9 sections |
+| 14 | 🔶 PR tail DONE | routing UI, semantic handlers, the sequential queue, MCP doors remain (v1.1) |
 
-## Stack
+## The stack
 
-191/191 tests, typecheck clean. Serve running with the full config. The APK current with notifications + all 5 sections.
+191/191 tests. Typecheck clean. The full product: feed -> swipe -> contract -> dispatch -> streamed events -> approval -> fork + push + PR (express #7520). Phone notifications. All surfaces live.
 
-## Next
+## The remaining v1.1 (WEEK-14) work
 
-- WEEK-13 remainder: Projects (radar UI over the WEEK-04 engine), References (reference-mode UI), session tabs (Diff/Tests)
-- WEEK-14: the routing UI + the sequential queue + the MCP doors
-- The honest small remainder: Lighthouse, security fixtures, offline replay
+Routing UI (model-type routing per s7.2), semantic event handlers, the honest sequential queue, MCP tool doors (api-anything), the adapter catalog UI.

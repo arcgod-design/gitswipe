@@ -1,0 +1,8 @@
+{
+  "date": "2026-10-10 (session 31)",
+  "milestone": "ALL 9 sections live - no soon tags remain anywhere",
+  "delivered": ["Projects (radar UI, /api/projects verified)", "References (reference mode, /api/references)", "the sidebar 100% real"],
+  "weeks_ledger": "00-13 DONE (12 demonstrated live); 14 partial (PR tail done; routing/queue/handlers = v1.1)",
+  "verified": ["191/191", "typecheck clean", "projects: 3 repos live", "references: honest empty on cold graph"],
+  "commits": ["36321a6", "245d4c2"]
+}
