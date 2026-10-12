@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   CheckCircle,
@@ -9,6 +9,7 @@ import {
   ShieldWarning,
   XCircle,
 } from "@phosphor-icons/react";
+import { LocalNotifications } from "@capacitor/local-notifications";
 import "@fontsource/dm-sans/400.css";
 import "@fontsource/dm-sans/500.css";
 import "@fontsource/dm-sans/700.css";
@@ -1101,18 +1102,49 @@ export default function App() {
   const [paired, setPaired] = useState(token.read() !== null);
   const [workError, setWorkError] = useState<string | null>(null);
   const [pendingApprovals, setPendingApprovals] = useState(0);
+  const seenStates = useRef<Set<string>>(new Set());
+  const pendingApprovalsRef = useRef(0);
 
   useEffect(() => {
     if (!paired) return;
+    const notify = (title: string, body: string): void => {
+      void (async () => {
+        try {
+          const perm = await LocalNotifications.requestPermissions();
+          if (perm.display !== "granted") return;
+          await LocalNotifications.schedule({ notifications: [{ id: Date.now(), title, body, schedule: { at: new Date(Date.now() + 100) } }] });
+        } catch {
+          // notifications are a progressive enhancement - never block the UI
+        }
+      })();
+    };
     const check = (): void => {
-      void call<{ sessions: Array<{ pendingApproval: boolean }> }>("/api/session/list")
-        .then((r) => setPendingApprovals(r.sessions.filter((s) => s.pendingApproval).length))
+      void call<{ sessions: Array<{ sessionId: string; title: string; state: string; pendingApproval: boolean }> }>("/api/session/list")
+        .then((r) => {
+          const pendingCount = r.sessions.filter((s) => s.pendingApproval).length;
+          if (pendingCount > pendingApprovalsRef.current) {
+            notify("GitSwipe: approval needed", "An agent finished its work and is waiting for your decision.");
+          }
+          pendingApprovalsRef.current = pendingCount;
+          for (const s of r.sessions) {
+            const key = `${s.sessionId}:${s.state}`;
+            if (seenStates.current.has(key)) continue;
+            if (seenStates.current.size > 0) {
+              if (s.state === "COMPLETED") notify("GitSwipe: agent completed", s.title);
+              if (s.state === "FAILED") notify("GitSwipe: agent failed", s.title);
+            }
+            seenStates.current.add(key);
+          }
+          setPendingApprovals(pendingCount);
+        })
         .catch(() => undefined);
     };
     check();
     const t = setInterval(check, 8_000);
     return () => clearInterval(t);
   }, [paired]);
+
+
 
   useEffect(() => {
     if (paired) setScreen({ name: "feed" });

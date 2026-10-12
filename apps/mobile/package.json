@@ -1,10 +1,11 @@
-﻿{
+{
   "name": "@jarvis/mobile",
   "private": true,
   "version": "0.1.0",
   "dependencies": {
     "@capacitor/android": "^7.0.0",
     "@capacitor/core": "^7.0.0",
+    "@capacitor/local-notifications": "^8.3.1",
     "@capacitor/preferences": "^7.0.0"
   },
   "devDependencies": {
