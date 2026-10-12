@@ -22,6 +22,7 @@ import type { DurableQueue } from "./queue.js";
 import type { WorkstationHealth } from "./health.js";
 import type { GatewaySession } from "@jarvis/agents";
 import type { Candidate, FeedCard } from "@jarvis/discovery";
+import { radarFromCandidates, findReferences } from "@jarvis/discovery";
 
 export interface WorkstationServerHandle {
   server: Server;
@@ -440,6 +441,46 @@ export function startWorkstationServer(deps: {
         };
       });
       respond(200, { work });
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/projects") {
+      if (feedEngine === undefined) {
+        respond(503, { error: "feed engine unavailable" });
+        return;
+      }
+      const settings = loadSettings(config.dataDir);
+      const projects = (settings.feedRepos ?? []).map((r) => {
+        const candidates = feedEngine.candidates().filter((c) => c.repoFullName === r);
+        const radar = radarFromCandidates(r, candidates);
+        return {
+          repo: r,
+          candidates: candidates.length,
+          radarCount: radar.length,
+          radar: radar.slice(0, 8),
+          issuesOpen: candidates.filter((c) => c.kind === "EXISTING_ISSUE").length,
+          stale: candidates.filter((c) => c.kind === "STALE_ISSUE").length,
+        };
+      });
+      respond(200, { projects });
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/references") {
+      if (feedEngine === undefined) {
+        respond(503, { error: "feed engine unavailable" });
+        return;
+      }
+      const settings = loadSettings(config.dataDir);
+      const candidates = feedEngine.candidates();
+      const titleTokens = new Set(candidates.flatMap((c) => c.title.toLowerCase().split(/[^a-z0-9]+/)).filter((t) => t.length >= 3));
+      const references = findReferences({
+        references: candidates,
+        projectLanguage: null,
+        projectTopics: (settings.feedRepos ?? []).map((r) => r.split("/")[1] ?? r),
+        projectTitleTokens: titleTokens,
+      });
+      respond(200, { references });
       return;
     }
 

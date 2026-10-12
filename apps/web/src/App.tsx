@@ -160,6 +160,8 @@ type Screen =
   | { name: "approvals" }
   | { name: "activity" }
   | { name: "work" }
+  | { name: "projects" }
+  | { name: "references" }
   | { name: "contract"; key: string }
   | { name: "session"; sessionId: string }
   | { name: "settings" };
@@ -612,6 +614,130 @@ interface WorkItem {
   language: string | null;
   state: string;
   sessionId: string | null;
+}
+
+interface ProjectCard {
+  repo: string;
+  candidates: number;
+  radarCount: number;
+  issuesOpen: number;
+  stale: number;
+  radar: Array<{ kind: string; summary: string; detail?: string; severity?: string }>;
+}
+
+function ProjectsScreen({ onBack }: { onBack: () => void }): React.ReactNode {
+  const [projects, setProjects] = useState<ProjectCard[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    void call<{ projects: ProjectCard[] }>("/api/projects")
+      .then((r) => setProjects(r.projects))
+      .catch((err) => setError(err instanceof Error ? err.message : "failed"));
+  }, []);
+
+  return (
+    <section>
+      <div className="contract-head">
+        <button type="button" className="btn btn-ghost" onClick={onBack}>
+          <ArrowLeft size={16} /> Back to feed
+        </button>
+        <h2 className="screen-title">Projects</h2>
+      </div>
+      {error !== null ? <div className="error-state" style={{ marginTop: 16 }}>{error}</div> : null}
+      {projects !== null && projects.length === 0 ? (
+        <div className="card" style={{ padding: 24, marginTop: 18 }}>
+          <div className="contract-section">
+            <h3>No projects registered</h3>
+            <p className="hint">Add repos in Workstation {"->"} Feed repositories - their radar findings land here.</p>
+          </div>
+        </div>
+      ) : null}
+      {projects !== null && projects.length > 0
+        ? projects.map((p) => (
+            <div key={p.repo} className="card" style={{ padding: 20, marginTop: 16 }}>
+              <div className="chip-row">
+                <span className="chip kind">{p.repo}</span>
+                <span className="chip">{p.issuesOpen} open</span>
+                <span className="chip">{p.stale} stale</span>
+                <span className="chip">{p.radarCount} radar</span>
+              </div>
+              {p.radar.length > 0 ? (
+                <div className="reasons" style={{ marginTop: 12 }}>
+                  {p.radar.map((r, i) => (
+                    <div key={i} className="reason pos">
+                      <span className="sign">!</span>
+                      <span>{r.kind}: {r.summary}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="hint" style={{ marginTop: 10 }}>No radar findings - the repo looks healthy.</p>
+              )}
+            </div>
+          ))
+        : null}
+    </section>
+  );
+}
+
+interface ReferenceCard {
+  key: string;
+  repo: string;
+  title: string;
+  relevance: number;
+  reasons: Array<{ type: string; value: string }>;
+}
+
+function ReferencesScreen({ onBack }: { onBack: () => void }): React.ReactNode {
+  const [refs, setRefs] = useState<ReferenceCard[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    void call<{ references: ReferenceCard[] }>("/api/references")
+      .then((r) => setRefs(r.references))
+      .catch((err) => setError(err instanceof Error ? err.message : "failed"));
+  }, []);
+
+  return (
+    <section>
+      <div className="contract-head">
+        <button type="button" className="btn btn-ghost" onClick={onBack}>
+          <ArrowLeft size={16} /> Back to feed
+        </button>
+        <h2 className="screen-title">References</h2>
+      </div>
+      <p className="hint" style={{ marginTop: 8 }}>Repos worth learning from - not contribution targets.</p>
+      {error !== null ? <div className="error-state" style={{ marginTop: 16 }}>{error}</div> : null}
+      {refs !== null && refs.length === 0 ? (
+        <div className="card" style={{ padding: 24, marginTop: 18 }}>
+          <div className="contract-section">
+            <h3>No references yet</h3>
+            <p className="hint">As your swipes build the skill graph, repos relevant to your work surface here with reasons.</p>
+          </div>
+        </div>
+      ) : null}
+      {refs !== null && refs.length > 0
+        ? refs.map((r) => (
+            <div key={r.key} className="card" style={{ padding: 20, marginTop: 16 }}>
+              <div className="chip-row">
+                <span className="chip kind">REFERENCE</span>
+                <span className="chip">{r.repo}</span>
+                <span className="chip">{Math.round(r.relevance * 100)}% relevant</span>
+              </div>
+              <div className="session-title">{r.title}</div>
+              <div className="reasons" style={{ marginTop: 10 }}>
+                {r.reasons.map((reason, i) => (
+                  <div key={i} className="reason pos">
+                    <span className="sign">+</span>
+                    <span>{reason.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))
+        : null}
+    </section>
+  );
 }
 
 function WorkScreen({ onOpenSession, onBack }: { onOpenSession: (sessionId: string) => void; onBack: () => void }): React.ReactNode {
@@ -1321,8 +1447,12 @@ export default function App() {
               <button type="button" className={`side-item ${screen.name === "work" ? "active" : ""}`} onClick={() => setScreen({ name: "work" })}>
                 <Play size={18} /> Work
               </button>
-              <button type="button" className="side-item soon" disabled>Projects <span className="soon-tag">soon</span></button>
-              <button type="button" className="side-item soon" disabled>References <span className="soon-tag">soon</span></button>
+              <button type="button" className={`side-item ${screen.name === "projects" ? "active" : ""}`} onClick={() => setScreen({ name: "projects" })}>
+                <House size={18} /> Projects
+              </button>
+              <button type="button" className={`side-item ${screen.name === "references" ? "active" : ""}`} onClick={() => setScreen({ name: "references" })}>
+                <CheckCircle size={18} /> References
+              </button>
               <button type="button" className={`side-item ${screen.name === "activity" ? "active" : ""}`} onClick={() => setScreen({ name: "activity" })}>
                 <Play size={18} /> Activity
               </button>
@@ -1377,6 +1507,12 @@ export default function App() {
                 onOpenSession={(sessionId) => setScreen({ name: "session", sessionId })}
                 onBack={() => setScreen({ name: "feed" })}
               />
+            ) : null}
+            {screen.name === "projects" ? (
+              <ProjectsScreen onBack={() => setScreen({ name: "feed" })} />
+            ) : null}
+            {screen.name === "references" ? (
+              <ReferencesScreen onBack={() => setScreen({ name: "feed" })} />
             ) : null}
             {screen.name === "session" ? (
               <SessionScreen sessionId={screen.sessionId} onBack={() => setScreen({ name: "feed" })} />
