@@ -335,24 +335,29 @@ async function buildProductionFeed(dataDir: string, secretStore?: import("@jarvi
     const JsonlSwipeStore = discovery.JsonlSwipeStore;
     const { join } = await import("node:path");
     const { loadSettings } = await import("./workstation/settings.js");
-    const { discoverUserRepos, discoverFromLanguages } = await import("./workstation/task.js");
+    const { discoverUserRepos, discoverFromLanguages, discoverUserLanguages } = await import("./workstation/task.js");
 
     const swipeStore = new JsonlSwipeStore(join(dataDir, "swipes.jsonl"));
     const settings = loadSettings(dataDir);
 
     let repos = settings.feedRepos ?? [];
-    if (repos.length === 0 && secretStore !== undefined) {
-      process.stdout.write("  feed: no feedRepos configured - discovering from your GitHub...\n");
-      const userRepos = await discoverUserRepos(secretStore, { maxRepos: 6 });
+    let userLanguages: string[] = [];
+    if (repos.length === 0 || true) {
+      process.stdout.write("  feed: discovering from your GitHub...\n");
+      userLanguages = await discoverUserLanguages();
+      if (userLanguages.length > 0) {
+        process.stdout.write(`  feed: your languages: ${userLanguages.slice(0, 5).join(", ")}\n`);
+      }
+      const userRepos = await discoverUserRepos(secretStore, { maxRepos: 8 });
       if (userRepos.length > 0) {
         repos = userRepos;
         process.stdout.write(`  feed: found ${userRepos.length} of your repos with open issues\n`);
-      } else {
-        const langRepos = await discoverFromLanguages(secretStore, ["TypeScript", "JavaScript", "Python"]);
-        if (langRepos.length > 0) {
-          repos = langRepos;
-          process.stdout.write(`  feed: discovered ${langRepos.length} repos matching common languages\n`);
-        }
+      }
+      if (repos.length === 0 || repos.length < 4) {
+        const topLangs = userLanguages.length > 0 ? userLanguages.slice(0, 3) : ["TypeScript", "JavaScript", "Python"];
+        const langRepos = await discoverFromLanguages(secretStore, topLangs);
+        repos = [...new Set([...repos, ...langRepos])].slice(0, 10);
+        if (langRepos.length > 0) process.stdout.write(`  feed: discovered ${langRepos.length} repos matching your languages\n`);
       }
     }
 
@@ -360,7 +365,8 @@ async function buildProductionFeed(dataDir: string, secretStore?: import("@jarvi
     const candidates = loaded.candidates;
     const candidateByKey = new Map(candidates.map((c) => [c.key, c]));
     process.stdout.write(`  feed: ${loaded.source} (${candidates.length} candidates)\n`);
-    let graph = seedFromLanguages(emptyGraph(), ["TypeScript", "TypeScript", "Python"]);
+    const seedLangs = userLanguages.length > 0 ? userLanguages.slice(0, 3) : ["TypeScript", "TypeScript", "Python"];
+    let graph = seedFromLanguages(emptyGraph(), seedLangs);
 
     return {
       feed() {
@@ -388,10 +394,39 @@ async function buildProductionFeed(dataDir: string, secretStore?: import("@jarvi
       },
       reset() {
         swipeStore.replaceAll([]);
-        graph = seedFromLanguages(emptyGraph(), ["TypeScript", "TypeScript", "Python"]);
+        graph = seedFromLanguages(emptyGraph(), seedLangs);
       },
       candidates() {
         return candidates;
+      },
+      async refill() {
+        const remaining = candidates.length - swipeStore.readAll().length;
+        if (remaining >= 4) {
+          return { refilled: false, newCount: candidates.length };
+        }
+        process.stdout.write(`  refill: only ${remaining} cards left - re-discovering...\n`);
+        const settings2 = loadSettings(dataDir);
+        let repos2 = settings2.feedRepos ?? [];
+        if (repos2.length === 0 && secretStore !== undefined) {
+          const userRepos = await discoverUserRepos(secretStore, { maxRepos: 8 });
+          if (userRepos.length > 0) repos2 = userRepos;
+          else {
+            const langRepos = await discoverFromLanguages(secretStore, ["TypeScript", "JavaScript", "Python", "Rust", "Go"]);
+            if (langRepos.length > 0) repos2 = langRepos;
+          }
+        }
+        if (repos2.length === 0) {
+          return { refilled: false, newCount: candidates.length };
+        }
+        const fresh = await loadRealCandidates(buildCandidate, repos2, secretStore);
+        const existingKeys = new Set(candidates.map((c) => c.key));
+        const newCards = fresh.candidates.filter((c) => !existingKeys.has(c.key));
+        for (const c of newCards) {
+          candidates.push(c);
+          candidateByKey.set(c.key, c);
+        }
+        process.stdout.write(`  refill: ${newCards.length} new cards added (${candidates.length} total)\n`);
+        return { refilled: newCards.length > 0, newCount: candidates.length };
       },
     };
   } catch (err) {
@@ -557,6 +592,30 @@ async function buildProductionSessions(dataDir: string, journal: import("./works
       return { state, pending };
     };
 
+    let recoveryDone = false;
+    const recoverZombieSessions = (all: Map<string, { repository: string; branch: string; title: string; createdAt: string }>): number => {
+      let recovered = 0;
+      for (const [id] of all) {
+        const live = sessions.get(id);
+        if (live !== undefined) continue;
+        const { state } = stateFromJournal(id);
+        if (state === "RUNNING" || state === "WAITING_FOR_APPROVAL" || state === "STARTING" || state === "PREFLIGHT" || state === "TESTING") {
+          const info = all.get(id);
+          journal.emit({
+            type: "AgentFailed",
+            user_id: "usr_local",
+            workstation_id: identity.deviceId,
+            session_id: id as never,
+            payload: { reason: "session recovered as FAILED: the daemon restarted while this session was active (no live process to resume)" },
+            source: "workstation",
+          });
+          process.stdout.write(`  recovery: zombie session ${id.substring(0, 14)}... (${state}) -> FAILED\n`);
+          recovered++;
+        }
+      }
+      return recovered;
+    };
+
     const watchOutcome = (session: import("@jarvis/agents").GatewaySession, id: string, candidateKey: string): void => {
       session.subscribe(() => {
         if (notified.has(id)) return;
@@ -643,6 +702,11 @@ async function buildProductionSessions(dataDir: string, journal: import("./works
       },
       listSessions() {
         const all = readSessionsMeta();
+        if (!recoveryDone) {
+          recoveryDone = true;
+          const recovered = recoverZombieSessions(all);
+          if (recovered > 0) process.stdout.write(`  recovery: ${recovered} zombie session(s) marked FAILED - the sequential queue is unblocked\n`);
+        }
         const out: Array<{ sessionId: string; repository: string; branch: string; title: string; state: string; pendingApproval: boolean; createdAt: string }> = [];
         for (const [id, info] of all) {
           const live = sessions.get(id);

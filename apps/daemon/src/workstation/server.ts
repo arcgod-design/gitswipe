@@ -46,6 +46,7 @@ export interface ProductionFeedEngine {
   swipe(key: string, action: string): { feed: FeedCard[]; whyNot: FeedCard[]; generatedAt: string };
   outcome(key: string, result: string): void;
   candidates(): Candidate[];
+  refill(): Promise<{ refilled: boolean; newCount: number }>;
   reset(): void;
 }
 
@@ -418,7 +419,17 @@ export function startWorkstationServer(deps: {
         respond(200, feedEngine.swipe(parsed.data.key, parsed.data.action));
         return;
       }
-      if (req.method === "POST" && url.pathname === "/api/feed/reset") {
+      if (req.method === "POST" && url.pathname === "/api/feed/refill") {
+      if (feedEngine === undefined) {
+        respond(503, { error: "feed engine unavailable" });
+        return;
+      }
+      const result = await feedEngine.refill();
+      respond(200, result);
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/feed/reset") {
         feedEngine.reset();
         respond(200, { reset: true });
         return;

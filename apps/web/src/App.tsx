@@ -276,6 +276,15 @@ function FeedScreen({ onWork }: { onWork: (key: string) => void }): React.ReactN
     try {
       const page = await call<FeedPage>("/api/feed");
       setFeed(page);
+      if (page.feed.length <= 1 && page.whyNot.length <= 2) {
+        void call<{ refilled: boolean; newCount: number }>("/api/feed/refill", { method: "POST" })
+          .then((r) => {
+            if (r.refilled) {
+              void call<FeedPage>("/api/feed").then(setFeed);
+            }
+          })
+          .catch(() => undefined);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "could not load feed");
     } finally {
@@ -372,8 +381,11 @@ function FeedScreen({ onWork }: { onWork: (key: string) => void }): React.ReactN
   if (top === undefined) {
     return (
       <div className="empty-state">
-        <div className="big">No cards right now.</div>
-        <div>Sync your GitHub repos on the workstation - or swipe data resets when it restarts.</div>
+        <div className="big">Looking for more work...</div>
+        <div>The feed refills automatically from your GitHub when cards run low.</div>
+        <button type="button" className="btn btn-primary" style={{ marginTop: 16 }} onClick={() => void loadFeed()}>
+          Refresh now
+        </button>
       </div>
     );
   }

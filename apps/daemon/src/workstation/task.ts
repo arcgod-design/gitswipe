@@ -178,6 +178,15 @@ export function buildTaskContract(candidate: Candidate, analysis: ContractAnalys
   };
 }
 
+export async function discoverUserLanguages(): Promise<string[]> {
+  try {
+    const res = await execFileAsync("gh", ["api", "user/repos", "--jq", "[.[].language] | map(select(. != null)) | group_by(.) | map({lang: .[0], count: length}) | sort_by(-.count) | .[].lang"], { timeout: 30_000 });
+    return res.stdout.trim().split(/\r?\n/).filter((l) => l.length > 0);
+  } catch {
+    return [];
+  }
+}
+
 export function taskPromptMarkdown(contract: TaskContract): string {
   return toMarkdown(contract);
 }
