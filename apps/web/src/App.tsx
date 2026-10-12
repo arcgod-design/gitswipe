@@ -158,6 +158,7 @@ type Screen =
   | { name: "feed" }
   | { name: "sessions" }
   | { name: "approvals" }
+  | { name: "activity" }
   | { name: "contract"; key: string }
   | { name: "session"; sessionId: string }
   | { name: "settings" };
@@ -598,6 +599,54 @@ function SessionsScreen({ onOpen, onBack, pendingOnly = false }: { onOpen: (sess
             </button>
           ))
         : null}
+    </section>
+  );
+}
+
+function ActivityScreen({ onBack }: { onBack: () => void }): React.ReactNode {
+  const [events, setEvents] = useState<SessionEvent[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    void call<{ events: SessionEvent[] }>("/api/sessions?from=0")
+      .then((r) => setEvents(r.events.filter((e) => e.type !== "WorkstationConnected").slice(-80).reverse()))
+      .catch((err) => setError(err instanceof Error ? err.message : "failed"));
+  }, []);
+
+  return (
+    <section>
+      <div className="contract-head">
+        <button type="button" className="btn btn-ghost" onClick={onBack}>
+          <ArrowLeft size={16} /> Back to feed
+        </button>
+        <h2 className="screen-title">Activity</h2>
+      </div>
+      {error !== null ? <div className="error-state" style={{ marginTop: 16 }}>{error}</div> : null}
+      {events !== null && events.length === 0 ? (
+        <div className="card" style={{ padding: 24, marginTop: 18 }}>
+          <div className="contract-section">
+            <h3>No activity yet</h3>
+            <p className="hint">Sessions, approvals, swipes and connections land here as they happen.</p>
+          </div>
+        </div>
+      ) : null}
+      {events !== null && events.length > 0 ? (
+        <div className="card" style={{ marginTop: 18, padding: "14px 18px" }}>
+          <div className="timeline">
+            {events.map((e) => (
+              <div key={e.event_id} className="event-row">
+                <span className="event-time">
+                  {new Date(e.occurred_at).toLocaleTimeString([], { hour12: false })}
+                </span>
+                <span>
+                  <span className="event-type">{e.type}</span>
+                  {eventDetail(e).length > 0 ? <span className="event-detail">- {eventDetail(e)}</span> : null}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -1197,7 +1246,9 @@ export default function App() {
               <button type="button" className="side-item soon" disabled>Work <span className="soon-tag">soon</span></button>
               <button type="button" className="side-item soon" disabled>Projects <span className="soon-tag">soon</span></button>
               <button type="button" className="side-item soon" disabled>References <span className="soon-tag">soon</span></button>
-              <button type="button" className="side-item soon" disabled>Activity <span className="soon-tag">soon</span></button>
+              <button type="button" className={`side-item ${screen.name === "activity" ? "active" : ""}`} onClick={() => setScreen({ name: "activity" })}>
+                <Play size={18} /> Activity
+              </button>
               <span className="side-sep" />
               <button type="button" className={`side-item ${screen.name === "settings" ? "active" : ""}`} onClick={() => setScreen({ name: "settings" })}>
                 <Gear size={18} /> Workstation
@@ -1240,6 +1291,9 @@ export default function App() {
                 onOpen={(sessionId) => setScreen({ name: "session", sessionId })}
                 onBack={() => setScreen({ name: "feed" })}
               />
+            ) : null}
+            {screen.name === "activity" ? (
+              <ActivityScreen onBack={() => setScreen({ name: "feed" })} />
             ) : null}
             {screen.name === "session" ? (
               <SessionScreen sessionId={screen.sessionId} onBack={() => setScreen({ name: "feed" })} />
