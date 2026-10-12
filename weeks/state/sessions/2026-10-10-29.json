@@ -1,0 +1,8 @@
+{
+  "date": "2026-10-10 (session 29, dawn)",
+  "milestone": "dispatched agents stream live events - the project's biggest blocker is dead",
+  "unlock": ["file transport (redirect+tail)", "spawn shell:true + stdio ignore", "lightning-first chain (glm/gpt-oss silent on opencode+nvidia)"],
+  "verified": ["23 events in 50s on the live dispatch", "real code in the worktree", "155KB/184KB transport proofs", "191/191 tests"],
+  "commits": ["484df83", "d0241c9"],
+  "next_step": "complete the weeks ladder: 09 (notifications/offline), 10 remnants, 11/12, 13/14"
+}

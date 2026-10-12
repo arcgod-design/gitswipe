@@ -1,30 +1,28 @@
-# SESSION-STATE.md — as of 2026-10-09 deep night (session 28: the file-transport switch, first attempt failed)
+# SESSION-STATE.md — as of 2026-10-10 dawn (session 29: THE dispatched agent streams — the project's biggest blocker is dead)
 
-## The milestone standing
+## The state
 
-https://github.com/expressjs/express/pull/7520 - the real PR landed (gh CLI is a harness citizen: check + fork + default-branch + automated PR creation). The full loop is proven end to end on a real major OSS repo.
+A live dispatched run streams real agent events (23 in the first 50s: 'Let me explore the key files...' -> tool calls -> 'step finished, 55849 tokens') and writes real code in the worktree. The full loop is now REAL end to end and UNATTENDED: feed -> swipe -> contract (nemotron) -> dispatch (opencode + lightning) -> streamed events -> approval gate -> fork + push + gh pr create (the express PR #7520 proved the tail).
 
-## THE OPEN BLOCKER (WEEK-10 core, in flight)
+## The unlock (three stacked fixes)
 
-The pipe-buffering fix (dispatched opencode runs stream to files, never to the daemon's pipes). The adapter was switched to cmd-redirect + file-tail. FIRST ATTEMPT FAILED: the cmd line itself is broken (exit 1 instantly, zero output, both models) - the quoting of the long --title/redirect needs the manual-echo debug pass (errors.md has the sequence). The tail-watcher architecture is sound + tested; only the shell line is broken.
+1. File transport: opencode streams to files, block-buffers pipes -> redirect + tail (drainFile)
+2. spawn(line, { shell: true, stdio: ignore }): the cmd.exe /c array form broke quoting (instant exit 1); the detached daemon has no stdin
+3. Chain: lightning-30b FIRST (glm-5.3 + gpt-oss-20b silent on opencode+nvidia - the deepseek disease); NVIDIA-only per the user's lock (shared key budget)
 
-## The stack (all committed)
+## Stack (all committed, d0241c9)
 
-- Journal-backed session history (survives restarts) + honest FAILED states (red badge + reason)
-- The responsive shells (s36 sidebar / s35 tabs + wordmark)
-- gh harness integration (fork, default-branch, PR creation + fallbacks)
-- The adapter: watchdog + rotation + tree-kill + the PR creator + (new) the file-tail transport
-- 191/191 tests, typecheck clean; commits through 8285c1c + the transport switch
+191/191 tests, typecheck clean. Journal-backed session history. Honest FAILED states. The responsive shells (s36/s35). gh harness integration. The PR automation. The one-click .bat.
 
-## The weeks ladder (the remaining work, in order)
+## The remaining weeks ladder (next: complete them in order)
 
-- WEEK-10 core: fix the cmd quoting -> LIVE re-dispatch proof (the file transport) -> then reconnect/replay E2E, no-hidden-retry audit, security fixtures, Lighthouse
-- WEEK-09 remainder: mobile notifications (approval/completion), offline replay, release config
-- WEEK-11: packaging + CI (semgrep gate, installers, PROVIDER_GUIDE)
+- WEEK-09: mobile notifications (LocalNotifications plugin: approval-needed / completed / failed), offline event replay, release build config
+- WEEK-10 remainder: reconnect/replay E2E, no-hidden-retry audit, security fixtures, Lighthouse (the transport core is DONE)
+- WEEK-11: packaging + CI (semgrep gate, installers, PROVIDER_GUIDE + litellm one-liner)
 - WEEK-12: master acceptance (s215) + v1 ship
-- WEEK-13: Work/Projects/References/Activity + session tabs + s9.2 rows
-- WEEK-14: orchestration v1.1 (routing UI, semantic handlers, the queue, MCP doors, adapter catalog) - the PR tail is DONE
+- WEEK-13: Work/Projects/References/Activity + session tabs (Diff/Tests) + s9.2 rows
+- WEEK-14: orchestration v1.1 (routing UI, semantic handlers, the sequential queue, MCP doors, adapter catalog)
 
 ## User items
 
-Minimal PAT swap + rotate both keys. Hands-on walkthrough + backup recording. imagemode.md visual passes.
+Minimal PAT swap + rotate both keys. Hands-on walkthrough + backup recording. imagemode.md passes.
