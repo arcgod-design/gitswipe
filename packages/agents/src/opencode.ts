@@ -34,8 +34,9 @@ export interface OpenCodeAdapterOptions {
 }
 
 export const DEFAULT_OPENCODE_MODEL_CHAIN = [
+  "nvidia/z-ai/glm-5.3",
+  "nvidia/openai/gpt-oss-20b",
   "nvidia/nvidia/nemotron-3.5-lightning-30b-a3b",
-  "nvidia/nvidia/nemotron-3-super-120b-a12b",
 ] as const;
 
 export const OPENCODE_TAKEOVER_NOTE =
@@ -159,8 +160,8 @@ export class OpenCodeAdapter implements AgentAdapter {
       const jsonArgs = [...args.slice(0, -1), "--format", "json", prompt];
       const exe = resolveOpenCodeBinary();
       const outFile = join(tmpdir(), `gitswipe-oc-${Date.now()}.jsonl`);
-      const cmdLine = [exe, ...jsonArgs.map(quoteCmdArg)].join(" ") + ` > "${outFile}" 2>&1`;
-      const child = this.doSpawn("cmd.exe", ["/c", cmdLine], { cwd: context.worktreePath });
+      const cmdLine = [quoteCmdArg(exe), ...jsonArgs.map(quoteCmdArg)].join(" ") + ` > ${quoteCmdArg(outFile)} 2>&1`;
+      const child = this.doSpawn(cmdLine, { cwd: context.worktreePath, shell: true, stdio: ["ignore", "ignore", "ignore"] });
       if (this.state !== null) this.state.child = child;
       let producedOutput = false;
       let lastOutput = Date.now();
