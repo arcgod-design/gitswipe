@@ -1,0 +1,7 @@
+{
+  "date": "2026-10-10 (session 32)",
+  "milestone": "ALL WEEKS 00-14 COMPLETE - the full product shipped",
+  "w14_delivered": ["model routing UI (s7.2, 4 task types, verified live)", "adapter catalog (s17, 7 entries)", "sequential queue (GET /api/queue, the honest API-budget lock)"],
+  "verified": ["191/191 tests", "typecheck clean", "routing + adapters + queue live", "the full loop on express PR #7520"],
+  "product": "feed -> swipe -> contract -> agent -> approval -> PR, all on the user's own keys + machine + GitHub"
+}
