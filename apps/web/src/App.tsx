@@ -877,6 +877,7 @@ function SessionScreen({ sessionId, onBack }: { sessionId: string; onBack: () =>
   const [events, setEvents] = useState<SessionEvent[]>([]);
   const [state, setState] = useState("RUNNING");
   const done = useRef(false);
+  const sessionDone = useRef(false);
 
   useEffect(() => {
     const push = (e: SessionEvent): void => {
@@ -887,15 +888,64 @@ function SessionScreen({ sessionId, onBack }: { sessionId: string; onBack: () =>
       else if (e.type === "ApprovalDenied") setState("PAUSED");
       else if (e.type === "ApprovalGranted" || e.type === "AgentStarted") setState("RUNNING");
     };
-    const finish = (): void => {
-      if (done.current) return;
-      done.current = true;
+    let cancelled = false;
+    let lastSeq = 0;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const connect = (): void => {
+      if (cancelled) return;
+      void (async () => {
+        try {
+          const res = await fetch(`${base.read()}/api/session/${sessionId}/events?from=${lastSeq}`, {
+            headers: token.read() !== null ? { Authorization: `Bearer ${token.read()}` } : {},
+          });
+          if (!res.ok || res.body === null) throw new Error(`HTTP ${res.status}`);
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+          for (;;) {
+            if (cancelled) { void reader.cancel(); break; }
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            let boundary: number;
+            while ((boundary = buffer.indexOf("\n\n")) >= 0) {
+              const block = buffer.slice(0, boundary);
+              buffer = buffer.slice(boundary + 2);
+              for (const line of block.split("\n")) {
+                if (line.startsWith("event:")) {
+                  sessionDone.current = true;
+                  continue;
+                }
+                if (line.startsWith("data:")) {
+                  const payload = line.slice(5).trim();
+                  if (payload === "{}") continue;
+                  try {
+                    const ev = JSON.parse(payload) as SessionEvent;
+                    lastSeq = Math.max(lastSeq, ev.sequence);
+                    push(ev);
+                  } catch {
+                    // skip malformed events
+                  }
+                }
+              }
+            }
+          }
+        } catch {
+          // stream ended or failed - auto-reconnect after 3s (the s21 replay: the phone picks up from lastSeq)
+          if (!cancelled && !sessionDone.current) {
+            reconnectTimer = setTimeout(connect, 3_000);
+          }
+        }
+      })();
     };
-    const cancel = openStream(sessionId, push, finish);
+
+    connect();
     return () => {
-      done.current = true;
-      cancel();
+      cancelled = true;
+      if (reconnectTimer !== null) clearTimeout(reconnectTimer);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
   const waiting = state === "WAITING_FOR_APPROVAL";
