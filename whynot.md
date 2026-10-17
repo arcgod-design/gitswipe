@@ -144,3 +144,24 @@ But it is NOT production ready because:
 13. No desktop application
 
 **The gap is not architecture — it's last-mile completeness.** The foundation is solid. Every issue above is solvable within the existing codebase. But shipping today would mean shipping a demo that looks like a product, and a user who installs it will hit issue #1 (the feed) within 30 seconds and correctly conclude it's not real yet.
+
+---
+---
+
+## STATUS UPDATE (2026-10-10 session 34)
+
+| # | Gap | Status |
+|---|---|---|
+| 1 | Feed not personal | ✅ FIXED — auto-discovers from the user's GitHub (languages + repos + language-matched) |
+| 2 | Cards run out | ✅ FIXED — auto-refill when low: POST /api/feed/refill + UI auto-trigger + Refresh button |
+| 3 | Work SAVED items dead | ✅ FIXED — tap SAVED → contract screen → dispatch |
+| 4 | Zombie sessions | ✅ FIXED — recoverZombieSessions: RUNNING with no live process → FAILED on first listSessions |
+| 11 | Skill graph cold-start | ✅ FIXED — seeds from discoverUserLanguages (the user's actual GitHub languages) |
+| 5 | No offline/reconnect | 🔴 OPEN — the s21 airplane-mode test |
+| 6 | Windows-only setup | 🔴 OPEN — start-gitswipe.sh needed |
+| 7 | No release APK | 🔴 OPEN — assembleRelease config needed |
+| 8 | Active session state dies | ⚠️ PARTIAL — zombie recovery (honest FAIL), not resume |
+| 9 | No E2E live tests | 🔴 OPEN |
+| 10 | Security gaps live agent | 🔴 OPEN |
+| 12 | No data versioning | 🔴 OPEN |
+| 13 | No desktop app | 🔴 OPEN (browser works) |

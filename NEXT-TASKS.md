@@ -190,3 +190,16 @@ Review day sequence:
 | WEEK-14 | Orchestration + harness v1.1: routing UI, semantic handlers, sequential queue, MCP tool doors, adapter catalog, PR lifecycle tail | NEW - queued |
 
 Every 'soon' tag in the nav maps to WEEK-13; the orchestration direction maps to WEEK-14. No section is left without a week.
+## Production-ready gap list (whynot.md, updated 2026-10-10)
+
+FIXED: #1 personal feed, #2 card refill, #3 Work dispatch, #4 zombie recovery, #11 real skill graph.
+
+REMAINING (priority):
+- #5 Offline/reconnect: SSE auto-reconnect + event replay from cursor + cached feed on the phone (the s21 airplane-mode test)
+- #10 Security: opencode children outside the gate; no API rate limiting
+- #6 start-gitswipe.sh for macOS/Linux
+- #7 assembleRelease for CI (unsigned, no keys in repo)
+- #8 Session state resume (currently honest-FAIL on restart)
+- #9 E2E live test: the full loop automated
+- #12 Data versioning for settings/sessions/swipes
+- #13 Desktop shell (browser works; shell is post-v1)
