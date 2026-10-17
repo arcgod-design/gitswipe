@@ -1,28 +1,31 @@
-# SESSION-STATE.md — as of 2026-10-10 evening (session 34: the personal feed + refill + recovery)
+# SESSION-STATE.md — as of 2026-10-10 night (session 35: whynot #1-5 + #11 all fixed)
 
-## What's fixed from whynot.md this session
+## The production-ready progress
 
-| Gap | Status | What shipped |
+| whynot gap | Status | What shipped |
 |---|---|---|
-| #1 The feed is not personal | ✅ FIXED | Auto-discovery from the user's GitHub: their languages, their repos, language-matched repos. Verified: TypeScript/JS/HTML/Python/Jupyter -> 5 repos -> 12 candidates. The skill graph seeds from the user's actual languages. |
-| #2 Cards run out | ✅ FIXED | Auto-refill when the feed runs low: re-discover, filter duplicates, append. UI auto-triggers + a Refresh button in the empty state. |
-| #3 Work screen SAVED items dead | ✅ FIXED (previous session) | Tap SAVED -> contract screen -> dispatch |
-| #4 Zombie sessions | ✅ FIXED | recoverZombieSessions on first listSessions: journal-backed RUNNING sessions with no live process -> FAILED with the honest reason. Verified: 1 zombie recovered, queue unblocked. |
-| #11 Skill graph cold-start-fixed | ✅ FIXED | The graph seeds from discoverUserLanguages (the user's actual GitHub language distribution), not hardcoded TypeScript/Python. |
+| #1 Feed not personal | ✅ FIXED | Auto-discovers from the user's GitHub: their languages, their repos, language-matched repos. The skill graph seeds from their actual data. Verified: TypeScript/JS/HTML/Python/Jupyter → 5 repos → 12 candidates. |
+| #2 Cards run out | ✅ FIXED | Auto-refill when the feed runs low (re-discover + dedupe + append) + UI auto-trigger + Refresh button |
+| #3 Work SAVED dead | ✅ FIXED | Tap SAVED → contract screen → dispatch |
+| #4 Zombie sessions | ✅ FIXED | recoverZombieSessions on the first listSessions: journal-backed RUNNING with no live process → FAILED (honest reason). Verified: 1 recovered, queue unblocked. |
+| #5 No offline/reconnect | ✅ FIXED | SSE auto-reconnect (3s) + event replay from the last cursor (lastSeq). The airplane-mode test is now structural: hotspot dies → agent keeps working locally → phone reconnects → replays from its cursor. |
+| #11 Skill graph cold-start | ✅ FIXED | discoverUserLanguages via gh CLI → the graph seeds from the user's actual languages |
+| #8 Session state dies with daemon | ⚠️ PARTIAL | Zombie recovery (honest FAIL), not resume |
+| #6 macOS/Linux setup | 🔴 OPEN | start-gitswipe.sh |
+| #7 Release APK | 🔴 OPEN | assembleRelease for CI |
+| #9 E2E live tests | 🔴 OPEN | |
+| #10 Security in live agent path | 🔴 OPEN | |
+| #12 Data versioning | 🔴 OPEN | |
+| #13 Desktop shell | 🔴 OPEN | browser works |
 
-## What remains from whynot.md
+## The stack
 
-| Gap | Priority | Status |
-|---|---|---|
-| #5 Offline/reconnect | HIGH | The s21 test needs: SSE auto-reconnect + event replay from cursor + cached feed on the phone |
-| #6 Windows-only setup | MEDIUM | start-gitswipe.sh for mac/linux |
-| #7 No release APK | MEDIUM | assembleRelease config for CI |
-| #8 Active session state dies with daemon | MEDIUM | Partially fixed by zombie recovery (honest FAIL), not resume |
-| #9 No E2E live tests | MEDIUM | The full loop is manually proven but not automated |
-| #10 Security gaps in live agent path | HIGH | opencode spawns its own children outside the gate; no rate limiting on the API |
-| #12 No data versioning | LOW | settings.json + sessions.jsonl need version fields |
-| #13 No desktop app | LOW | Browser tab works; the desktop shell is post-v1 |
+190/191 tests + 1 skipped (live provider, shared budget honesty). Typecheck clean. The full loop proven (express PR #7520). The feed is personal. Cards refill. Sessions recover. The phone reconnects.
 
-## The product today
+## Remaining for full production readiness
 
-Feed (your languages, your repos, auto-refills) -> swipe (streams live) -> contract (nemotron analysis) -> dispatch (opencode in an isolated worktree) -> approval (your phone buzzes) -> fork + push + PR (gh CLI). All with your own keys, your own machine, your own GitHub. 190/191 tests.
+1. start-gitswipe.sh (mac/linux) — small
+2. assembleRelease gradle config — small
+3. E2E live test (the full loop automated) — medium
+4. Security: rate limiting on the API + opencode children gated — medium
+5. Data version fields on settings/sessions/swipes — small

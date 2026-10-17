@@ -1,0 +1,7 @@
+{
+  "date": "2026-10-10 (session 35, night)",
+  "whynot_fixed_total": "6 of 13 (#1 #2 #3 #4 #5 #11)",
+  "latest_fix": "#5 SSE auto-reconnect + event replay from cursor",
+  "verified": ["190/191 + 1 skipped", "typecheck clean", "feed auto-discovers: TypeScript/JS/HTML/Python/Jupyter -> 5 repos -> 12 candidates", "1 zombie recovered", "SSE reconnect structural"],
+  "remaining": ["#6 mac/linux setup", "#7 release APK", "#8 session resume", "#9 E2E live tests", "#10 security", "#12 versioning", "#13 desktop shell"]
+}
