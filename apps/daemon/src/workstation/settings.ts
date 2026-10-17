@@ -1,6 +1,7 @@
 import { isAbsolute, join } from "node:path";
 import { mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 
+export const SETTINGS_VERSION = 1;
 export interface WorkstationSettings {
   workRoot?: string;
   providerId?: string;

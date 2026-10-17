@@ -549,7 +549,7 @@ async function buildProductionSessions(dataDir: string, journal: import("./works
     const recordSessionMeta = (id: string, info: { repository: string; branch: string; title: string; createdAt: string }): void => {
       sessionInfo.set(id, info);
       try {
-        appendFileSync(sessionsMetaPath, `${JSON.stringify({ sessionId: id, ...info })}\n`, "utf-8");
+        appendFileSync(sessionsMetaPath, `${JSON.stringify({ version: 1, sessionId: id, ...info })}\n`, "utf-8");
       } catch {
         // the live map still works even if the durable append fails
       }
