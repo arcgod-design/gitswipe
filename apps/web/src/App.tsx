@@ -376,7 +376,29 @@ function FeedScreen({ onWork }: { onWork: (key: string) => void }): React.ReactN
     return () => window.removeEventListener("keydown", onKey);
   }, [swipe]);
 
-  if (error !== null) return <div className="error-state">{error}</div>;
+  if (error !== null) return (
+    <section>
+      <div className="empty-state">
+        <div className="big">Could not reach the workstation.</div>
+        <div style={{ marginTop: 8, color: "var(--text-muted)" }}>{error}</div>
+        <div style={{ marginTop: 8, color: "var(--text-muted)", fontSize: 13 }}>
+          The network may have changed. Re-pair with the current workstation URL.
+        </div>
+        <button
+          type="button"
+          className="btn btn-primary"
+          style={{ marginTop: 16 }}
+          onClick={() => {
+            token.clear();
+            setPaired(false);
+            setScreen({ name: "pair" });
+          }}
+        >
+          Re-pair with the workstation
+        </button>
+      </div>
+    </section>
+  );
   if (loading && feed === null) return <div className="loading-skeleton" aria-label="loading" />;
   if (top === undefined) {
     return (
