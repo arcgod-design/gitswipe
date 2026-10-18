@@ -1,31 +1,43 @@
-# SESSION-STATE.md — as of 2026-10-10 night (session 36: whynot 10/13 fixed, production-ready)
+# SESSION-STATE.md — as of 2026-10-18 (the phone paired through the tunnel; the loop is personal)
 
-## The final gap ledger
+## The current state
 
-| whynot gap | Status |
-|---|---|
-| #1 Personal feed | ✅ FIXED |
-| #2 Card refill | ✅ FIXED |
-| #3 Work dispatch | ✅ FIXED |
-| #4 Zombie recovery | ✅ FIXED |
-| #5 Offline/reconnect | ✅ FIXED |
-| #6 macOS/Linux setup | ✅ FIXED (start-gitswipe.sh) |
-| #7 Release APK | ✅ FIXED (1.7 MB minified, unsigned) |
-| #8 Session resume | ⚠️ PARTIAL (honest FAIL, not resume) |
-| #9 E2E test | ✅ FIXED (10 steps, 9/10 first run) |
-| #10 Security hardening | 🔴 OPEN |
-| #11 Real skill graph | ✅ FIXED |
-| #12 Data versioning | ✅ FIXED |
-| #13 Desktop shell | 🔴 OPEN (post-v1) |
+The phone is PAIRED and showing the personal feed (TanStack/query #11586, TypeScript, 0.80, "matches your strongest languages"). The connection goes through a Cloudflare tunnel (https://brunette-conducted-principle-bailey.trycloudflare.com) — works from any network. The tunnel URL changes on each restart (start-gitswipe regenerates it).
 
-## What GitSwipe is now
+## The full production loop (all live)
 
-A personal engineering agent network: it discovers real GitHub work from YOUR repos (your languages, your skill graph), writes the brief with AI (nemotron), dispatches a real coding agent (opencode in an isolated worktree), streams every event to your phone and desktop, gates the push behind your approval, forks and opens the PR — and buzzes your phone when it needs you. All with your own keys, your own machine, your own GitHub.
+feed (your repos, your languages, auto-refill) -> swipe (streams, self-learning) -> contract (nemotron analysis) -> dispatch (opencode in an isolated worktree) -> streamed events (file transport + heartbeats) -> approval (phone buzzes, green/red badge) -> fork + push + gh pr create. Proven end to end: expressjs/express PR #7520.
 
-**One-click install** (Windows/macOS/Linux), **release APK** (1.7 MB), **security CI** (semgrep), **E2E tested** (10 steps), **notifications**, **SSE reconnect**, **journal-backed sessions**, **zombie recovery**, **auto-refilling feed**, **the full PR automation via gh CLI**.
+## The whynot gap ledger (10 of 13 fixed)
 
-## The 3 remaining gaps (v1.1 backlog)
+| # | Gap | Status |
+|---|---|---|
+| 1 | Feed not personal | ✅ discoverUserLanguages + discoverUserRepos + discoverFromLanguages |
+| 2 | Cards run out | ✅ auto-refill + Refresh button |
+| 3 | Work SAVED dead | ✅ tap -> contract -> dispatch |
+| 4 | Zombie sessions | ✅ recoverZombieSessions |
+| 5 | No offline/reconnect | ✅ SSE auto-reconnect + event replay from lastSeq |
+| 6 | Windows-only setup | ✅ start-gitswipe.sh (macOS/Linux) |
+| 7 | No release APK | ✅ 1.7 MB minified + proguard, unsigned |
+| 8 | Session resume | ⚠️ honest FAIL (not resume) |
+| 9 | No E2E tests | ✅ 10-step e2e-loop.test.ts (standalone: VITEST_E2E=1) |
+| 10 | Security gaps | ✅ rate limiting (120/min, 429 verified) + token storage hardened |
+| 11 | Skill graph cold-start | ✅ seeds from user's real languages |
+| 12 | No data versioning | ✅ SETTINGS_VERSION=1 + sessions.jsonl version:1 |
+| 13 | Desktop shell | 🔴 post-v1 (browser works) |
 
-1. Session resume on daemon restart (s33 CheckpointStore + resume logic)
-2. Security hardening: opencode children gated + API rate limiting + secure storage migration
-3. Desktop shell (Tauri, s181)
+## The stack
+
+- 190/191 tests + 11 skipped (1 live + 10 E2E standalone), typecheck clean
+- 9 packages + web + mobile (Capacitor 7)
+- All 9 sections live, 0 soon tags
+- Model routing (s7.2), adapter catalog (s17), sequential queue
+- gh CLI integration (fork, PR, default branch)
+- semgrep security CI, PROVIDER_GUIDE, one-click installers (3 platforms)
+- Connection-failed state with Re-pair action (the network-change UX)
+
+## Open
+
+- #8 session resume (CheckpointStore exists; resume logic missing)
+- #10 remaining: opencode children gated (the policy engine doesn't individually gate opencode's subprocess)
+- #13 desktop shell (Tauri, post-v1)
