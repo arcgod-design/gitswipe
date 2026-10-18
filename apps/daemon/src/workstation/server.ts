@@ -30,6 +30,39 @@ export interface WorkstationServerHandle {
   close(): Promise<void>;
 }
 
+const RATE_LIMITS = {
+  windowMs: 60_000,
+  maxRequests: 120,
+  burst: 10,
+};
+
+interface RateBucket {
+  tokens: number;
+  lastRefill: number;
+}
+
+const rateBuckets = new Map<string, RateBucket>();
+
+function checkRateLimit(deviceId: string): { allowed: boolean; remaining: number; resetMs: number } {
+  const now = Date.now();
+  let bucket = rateBuckets.get(deviceId);
+  if (bucket === undefined) {
+    bucket = { tokens: RATE_LIMITS.maxRequests, lastRefill: now };
+    rateBuckets.set(deviceId, bucket);
+  }
+  const elapsed = now - bucket.lastRefill;
+  const refill = Math.floor((elapsed / RATE_LIMITS.windowMs) * RATE_LIMITS.maxRequests);
+  if (refill > 0) {
+    bucket.tokens = Math.min(RATE_LIMITS.maxRequests + RATE_LIMITS.burst, bucket.tokens + refill);
+    bucket.lastRefill = now;
+  }
+  if (bucket.tokens <= 0) {
+    return { allowed: false, remaining: 0, resetMs: RATE_LIMITS.windowMs - (elapsed % RATE_LIMITS.windowMs) };
+  }
+  bucket.tokens -= 1;
+  return { allowed: true, remaining: bucket.tokens, resetMs: 0 };
+}
+
 const ALLOWED_ORIGINS = (port: number, extra: readonly string[]): string[] => [
   `http://127.0.0.1:${port}`,
   `http://localhost:${port}`,
@@ -148,6 +181,16 @@ export function startWorkstationServer(deps: {
     const device = pairing.verifyToken(bearerToken(req));
     if (device === null) {
       respond(401, { error: "unauthorized: pair a device first (POST /api/pair)" });
+      return;
+    }
+
+    const rate = checkRateLimit(device.deviceId);
+    if (!rate.allowed) {
+      respond(429, { error: `rate limit exceeded - retry in ${Math.ceil(rate.resetMs / 1000)}s` }, {
+        "Retry-After": String(Math.ceil(rate.resetMs / 1000)),
+        "X-RateLimit-Remaining": "0",
+        "X-RateLimit-Limit": String(RATE_LIMITS.maxRequests),
+      });
       return;
     }
 

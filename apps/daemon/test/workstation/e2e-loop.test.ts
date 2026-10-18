@@ -4,7 +4,11 @@ import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-describe("E2E: the full loop (live, local-only, mock agent)", () => {
+// Run standalone: npx vitest run apps/daemon/test/workstation/e2e-loop.test.ts
+// Skipped in the main suite (the server spawn is slow and flaky in parallel)
+const isMainSuite = process.env.VITEST_E2E !== "1";
+
+describe.skipIf(isMainSuite)("E2E: the full loop (live, local-only, mock agent)", () => {
   const dataDir = mkdtempSync(join(tmpdir(), "jvs-e2e-"));
   const port = 7991;
   const base = `http://127.0.0.1:${port}`;

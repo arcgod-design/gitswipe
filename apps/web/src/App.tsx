@@ -61,7 +61,7 @@ const token = {
     const params = new URLSearchParams(window.location.search);
     const fromUrl = params.get("token");
     if (fromUrl !== null && fromUrl.length > 0) {
-      localStorage.setItem("gitswipe_token", fromUrl);
+      token.save(fromUrl);
       params.delete("token");
       const next = params.toString();
       window.history.replaceState(null, "", next.length > 0 ? `?${next}` : window.location.pathname);
