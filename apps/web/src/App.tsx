@@ -259,7 +259,7 @@ function PairScreen({ onPaired }: { onPaired: (t: string) => void }): React.Reac
   );
 }
 
-function FeedScreen({ onWork }: { onWork: (key: string) => void }): React.ReactNode {
+function FeedScreen({ onWork, onRePair }: { onWork: (key: string) => void; onRePair?: () => void }): React.ReactNode {
   const [feed, setFeed] = useState<FeedPage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -390,8 +390,7 @@ function FeedScreen({ onWork }: { onWork: (key: string) => void }): React.ReactN
           style={{ marginTop: 16 }}
           onClick={() => {
             token.clear();
-            setPaired(false);
-            setScreen({ name: "pair" });
+            onRePair?.();
           }}
         >
           Re-pair with the workstation
@@ -1658,7 +1657,7 @@ export default function App() {
                     <button type="button" className="btn btn-quiet" style={{ marginLeft: 12 }} onClick={() => setWorkError(null)}>dismiss</button>
                   </div>
                 ) : null}
-                <FeedScreen onWork={onWork} />
+                <FeedScreen onWork={onWork} onRePair={() => { token.clear(); setPaired(false); setScreen({ name: "pair" }); }} />
               </>
             ) : null}
             {screen.name === "contract" ? (

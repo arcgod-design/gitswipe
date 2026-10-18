@@ -595,26 +595,41 @@ async function buildProductionSessions(dataDir: string, journal: import("./works
     let recoveryDone = false;
     const recoverZombieSessions = (all: Map<string, { repository: string; branch: string; title: string; createdAt: string }>): number => {
       let recovered = 0;
-      for (const [id] of all) {
+      for (const [id, info] of all) {
         const live = sessions.get(id);
         if (live !== undefined) continue;
         const { state } = stateFromJournal(id);
         if (state === "RUNNING" || state === "WAITING_FOR_APPROVAL" || state === "STARTING" || state === "PREFLIGHT" || state === "TESTING") {
-          const info = all.get(id);
+          let reason = "session recovered as FAILED: the daemon restarted while this session was active";
+          let uncommitted = false;
+          try {
+            const slug = task.repoSlugFor(info.repository);
+            const issueNum = (info.branch ?? "").match(/issue-(\d+)/)?.[1];
+            if (issueNum !== undefined) {
+              const wtPath = join(workRoot, slug, `issue-${issueNum}`);
+              const childProcess = require("node:child_process") as typeof import("node:child_process");
+              const status = childProcess.execFileSync("git", ["-C", wtPath, "status", "--porcelain"], { timeout: 5_000, encoding: "utf-8" });
+              const lines = status.trim().split(/\r?\n/).filter((l: string) => l.length > 0 && !l.includes("TASK_CONTRACT.md"));
+              if (lines.length > 0) {
+                uncommitted = true;
+                reason = `session recovered as FAILED - BUT ${lines.length} file(s) with uncommitted agent work found in ${wtPath}. The code is preserved; review and commit manually or re-dispatch.`;
+              }
+            }
+          } catch { /* worktree might not exist */ }
           journal.emit({
             type: "AgentFailed",
             user_id: "usr_local",
             workstation_id: identity.deviceId,
             session_id: id as never,
-            payload: { reason: "session recovered as FAILED: the daemon restarted while this session was active (no live process to resume)" },
+            payload: { reason, uncommitted },
             source: "workstation",
           });
-          process.stdout.write(`  recovery: zombie session ${id.substring(0, 14)}... (${state}) -> FAILED\n`);
+          process.stdout.write(`  recovery: zombie session ${id.substring(0, 14)}... (${state}) -> FAILED${uncommitted ? " (uncommitted work preserved)" : ""}\n`);
           recovered++;
         }
       }
       return recovered;
-    };
+    }
 
     const watchOutcome = (session: import("@jarvis/agents").GatewaySession, id: string, candidateKey: string): void => {
       session.subscribe(() => {
