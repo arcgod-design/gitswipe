@@ -1,43 +1,31 @@
-# SESSION-STATE.md — as of 2026-10-18 (the phone paired through the tunnel; the loop is personal)
+# SESSION-STATE.md — as of 2026-10-18 final (whynot 10/13 fixed, #8 upgraded to partial+recovery)
 
-## The current state
+## The state
 
-The phone is PAIRED and showing the personal feed (TanStack/query #11586, TypeScript, 0.80, "matches your strongest languages"). The connection goes through a Cloudflare tunnel (https://brunette-conducted-principle-bailey.trycloudflare.com) — works from any network. The tunnel URL changes on each restart (start-gitswipe regenerates it).
+The full production loop is live and personal: feed (your languages, your repos, auto-refill) -> swipe (self-learning) -> contract (nemotron) -> dispatch (opencode in an isolated worktree) -> streamed events -> approval (phone buzzes) -> fork + push + gh pr create. The phone is paired through the Cloudflare tunnel from any network. The connection-failed state shows "Could not reach the workstation" with a Re-pair action.
 
-## The full production loop (all live)
-
-feed (your repos, your languages, auto-refill) -> swipe (streams, self-learning) -> contract (nemotron analysis) -> dispatch (opencode in an isolated worktree) -> streamed events (file transport + heartbeats) -> approval (phone buzzes, green/red badge) -> fork + push + gh pr create. Proven end to end: expressjs/express PR #7520.
-
-## The whynot gap ledger (10 of 13 fixed)
+## The whynot gap ledger (10 of 13 fixed, 2 partial)
 
 | # | Gap | Status |
 |---|---|---|
-| 1 | Feed not personal | ✅ discoverUserLanguages + discoverUserRepos + discoverFromLanguages |
-| 2 | Cards run out | ✅ auto-refill + Refresh button |
+| 1 | Feed not personal | ✅ |
+| 2 | Cards run out | ✅ auto-refill |
 | 3 | Work SAVED dead | ✅ tap -> contract -> dispatch |
-| 4 | Zombie sessions | ✅ recoverZombieSessions |
-| 5 | No offline/reconnect | ✅ SSE auto-reconnect + event replay from lastSeq |
-| 6 | Windows-only setup | ✅ start-gitswipe.sh (macOS/Linux) |
-| 7 | No release APK | ✅ 1.7 MB minified + proguard, unsigned |
-| 8 | Session resume | ⚠️ honest FAIL (not resume) |
-| 9 | No E2E tests | ✅ 10-step e2e-loop.test.ts (standalone: VITEST_E2E=1) |
-| 10 | Security gaps | ✅ rate limiting (120/min, 429 verified) + token storage hardened |
-| 11 | Skill graph cold-start | ✅ seeds from user's real languages |
-| 12 | No data versioning | ✅ SETTINGS_VERSION=1 + sessions.jsonl version:1 |
-| 13 | Desktop shell | 🔴 post-v1 (browser works) |
+| 4 | Zombie sessions | ✅ recovery + uncommitted-work detection |
+| 5 | No offline/reconnect | ✅ SSE reconnect + replay |
+| 6 | Windows-only setup | ✅ start-gitswipe.sh |
+| 7 | No release APK | ✅ 1.7 MB minified |
+| 8 | Session resume | ⚠️ honest FAIL + uncommitted-work detection (code preserved; not auto-resume) |
+| 9 | No E2E tests | ✅ 10-step standalone |
+| 10 | Security gaps | ✅ rate limiting (120/min, 429 verified) + token storage; opencode children remain ungated |
+| 11 | Skill graph cold-start | ✅ |
+| 12 | No data versioning | ✅ |
+| 13 | Desktop shell | 🔴 post-v1 |
 
-## The stack
+## What the session recovery does now
 
-- 190/191 tests + 11 skipped (1 live + 10 E2E standalone), typecheck clean
-- 9 packages + web + mobile (Capacitor 7)
-- All 9 sections live, 0 soon tags
-- Model routing (s7.2), adapter catalog (s17), sequential queue
-- gh CLI integration (fork, PR, default branch)
-- semgrep security CI, PROVIDER_GUIDE, one-click installers (3 platforms)
-- Connection-failed state with Re-pair action (the network-change UX)
+On serve restart, a RUNNING zombie session gets marked FAILED. The recovery then runs `git status` in the worktree: if the agent left uncommitted code (not TASK_CONTRACT.md), the failure reason becomes "BUT N file(s) with uncommitted agent work found in <path> — the code is preserved; review and commit manually or re-dispatch." The journal payload carries `uncommitted: true`. The user knows the agent's work didn't vanish.
 
-## Open
+## Stack
 
-- #8 session resume (CheckpointStore exists; resume logic missing)
-- #10 remaining: opencode children gated (the policy engine doesn't individually gate opencode's subprocess)
-- #13 desktop shell (Tauri, post-v1)
+190/191 + 11 skipped tests. Typecheck clean. APK installed. All committed (257d1fa).

@@ -22,7 +22,7 @@
 ## REMAINING (3 of 13)
 
 ### 8. Session state dies with daemon (PARTIAL)
-Zombie recovery marks orphans as FAILED (honest), but there is no RESUME. A daemon restart mid-run loses the active session's management state. The agent's worktree work survives; the session context does not. **Fix path: checkpoint-based resume (s33) — the CheckpointStore exists, the resume logic is the missing piece.**
+Zombie recovery marks orphans as FAILED + detects uncommitted agent work in the worktree (the code is preserved and the user is told where to find it). Full auto-resume is still not implemented.. A daemon restart mid-run loses the active session's management state. The agent's worktree work survives; the session context does not. **Fix path: checkpoint-based resume (s33) — the CheckpointStore exists, the resume logic is the missing piece.**
 
 ### 10. Security gaps in the live agent path
 - opencode spawns its own child processes that are NOT individually gated by the s26 policy engine
