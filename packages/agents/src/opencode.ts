@@ -318,6 +318,15 @@ export class OpenCodeAdapter implements AgentAdapter {
         const dels = /(\d+) deletions?/.exec(shortstat.stdout);
         onEvent({ kind: "patch", files: files ? Number(files[1]) : 0, additions: adds ? Number(adds[1]) : 0, deletions: dels ? Number(dels[1]) : 0 });
       }
+      // boundary check (whynot #10): verify the agent didn't write outside the worktree
+      try {
+        const repoPath = context.worktreePath.replace(/[\\/][^\\/]+$/, "");
+        const mainStatus = await execFileAsync("git", ["-C", repoPath, "status", "--porcelain"], { timeout: 10_000 });
+        const leaks = mainStatus.stdout.split(/\r?\n/).filter((l: string) => l.trim().length > 0);
+        if (leaks.length > 0) {
+          onEvent({ kind: "message", text: `BOUNDARY WARNING: ${leaks.length} change(s) detected outside the worktree in ${repoPath}. The agent may have escaped the isolation boundary. Review immediately.` });
+        }
+      } catch { /* the shared clone might not have a separate working tree */ }
     } catch {
       onEvent({ kind: "message", text: "could not inspect the worktree after the run" });
     }
