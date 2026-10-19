@@ -76,3 +76,13 @@
 ## Explicitly NOT built (and not scheduled before its week)
 
 Database (migrations land with the daemon journal in WEEK-05 — JSONL journal first), Puter Workers/shared index (post-v1, needs ADR), Harness adapter (WEEK-06 interface only), Tailscale transport (optional, post-v1), relay service.
+
+## Latest capabilities (2026-10-18)
+
+| Capability | Where | Verified by |
+|---|---|---|
+| Session recovery with uncommitted-work detection | `apps/daemon/src/index.ts` (recoverZombieSessions) | typecheck + manual |
+| API rate limiting (120 req/min, 429 with Retry-After) | `apps/daemon/src/workstation/server.ts` | verified live: 124/6 rejected |
+| E2E full-loop test (10 steps, standalone) | `apps/daemon/test/workstation/e2e-loop.test.ts` | 9/10 first run |
+| Auto-discovery feed (user languages + repos) | `apps/daemon/src/workstation/task.ts` | verified live: 5 repos, 12 candidates |
+| Connection-failed state with Re-pair action | `apps/web/src/App.tsx` (FeedScreen) | device-verified |

@@ -32,4 +32,4 @@
 - Phase 8 (production UX) → WEEK-08 ✅ + WEEK-09 (current)
 - Phase 9 (hardening/packaging/acceptance) → WEEK-10–12
 
-Releases: v0.1.0 (engines) · v0.2.0 (workstation daemon) · v0.2.1 (audit hardening) · v0.3.0 (agent gateway + security) · v0.3.1 (CI-green approval-execution fix) · v0.4.0 (production web UI). Parallel track: the `mvp` branch carries the pitch demo (complete — see docs/MVP-PLAN.md).
+Releases: v0.1.0 (engines) · v0.2.0 (workstation daemon) · v0.2.1 (audit hardening) · v0.3.0 (agent gateway + security) · v0.3.1 (CI-green approval-execution fix) · v0.4.0 (production web UI) · v0.4.1 (doc sync) · v0.4.0 (production web UI). Parallel track: the `mvp` branch carries the pitch demo (complete — see docs/MVP-PLAN.md).

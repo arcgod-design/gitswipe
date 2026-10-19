@@ -59,3 +59,10 @@ See `PROJECT-CORE.md` for the full table and `doc-of-journey/decisions/` for the
 - `weeks/WEEK-00.md` rolling handoff + `weeks/state/` — per memory-protocol.md, every session end.
 - `docs/ROADMAP.md` / `NEXT-TASKS.md` — update on scope/priority changes only.
 - `docs/VISION.md`, `PROJECT-CORE.md` — only when the user locks a decision.
+
+## Transport architecture (ADR 0009)
+
+- **Loopback default**: the daemon binds 127.0.0.1:7420 by default
+- **Cloudflare tunnel**: `start-gitswipe.bat` / `.sh` offer a quick tunnel (cloudflared) for remote access from any network — the tunnel URL changes per restart, no account needed
+- **The connection-failed state**: if the phone can't reach the workstation, the app shows a "Could not reach" state with a "Re-pair" action
+- **Never**: port forwarding, public SSH exposure, Tailscale (removed by ADR 0009)
